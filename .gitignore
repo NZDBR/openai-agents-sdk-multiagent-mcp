@@ -21,3 +21,6 @@ dist/
 *.db-wal
 !config/dev.env.example
 !config/prod.env.example
+
+.demo-data/
+!.env.demo.example

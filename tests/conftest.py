@@ -16,7 +16,7 @@ def settings():
 def isolate_runtime_urls(request, monkeypatch):
     if request.node.get_closest_marker('integration'):
         return
-    for name in ['GENIE_MCP_URL','STORETIME_MCP_URL','OPSTASK_MCP_URL','CONFLUENCE_MCP_URL','OPSTASK_ARGUMENT_MAP','OPSTASK_RESULT_ID_FIELD']:
+    for name in ['MCP_CONNECTION_MODE','DEMO_MCP_ALLOWED_HOSTS','GENIE_MCP_URL','STORETIME_MCP_URL','OPSTASK_MCP_URL','CONFLUENCE_MCP_URL','OPSTASK_ARGUMENT_MAP','OPSTASK_RESULT_ID_FIELD']:
         monkeypatch.delenv(name,raising=False)
 
 

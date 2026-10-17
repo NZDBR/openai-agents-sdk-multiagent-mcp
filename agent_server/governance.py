@@ -5,6 +5,7 @@ import mlflow
 from dataclasses import dataclass, field
 
 from databricks_openai.agents import McpServer
+from agents.mcp import MCPServerStreamableHttp
 
 WRITE = re.compile(r'(^|[_\W])(create|update|delete|approve|mutate|write|assign|schedule_shift|cancel|patch)([_\W]|$)', re.I)
 
@@ -44,7 +45,7 @@ class Evidence:
         return sources
 
 
-class GovernedMcpServer(McpServer):
+class GovernedTools:
     """Defense in depth: list filtering AND direct call enforcement.
 
     External tools require audited exact names; managed Genie is restricted by
@@ -99,4 +100,13 @@ def enforce_policy(answer, evidence):
     supported = bool(quotes) and all(len(q.strip()) >= 20 and any(json.dumps(q, ensure_ascii=False)[1:-1] in document for document in documents) for q in quotes)
     if not answer.citations or not set(answer.citations).issubset(valid) or not supported:
         return 'I cannot establish that policy from governed Confluence sources. Please consult the policy owner.'
-    return 'Governed Confluence policy excerpts:\n' + '\n'.join('> ' + quote for quote in quotes)
+    synthetic = any(c['capability']=='confluence' and isinstance(c['result'],dict) and c['result'].get('mode')=='demo' for c in evidence.calls)
+    heading = 'Synthetic demo Confluence policy excerpts:' if synthetic else 'Governed Confluence policy excerpts:'
+    return heading + '\n' + '\n'.join('> ' + quote for quote in quotes)
+
+
+class GovernedMcpServer(GovernedTools, McpServer):
+    """Governed Databricks transport."""
+
+class LocalDemoMcpServer(GovernedTools, MCPServerStreamableHttp):
+    """Explicit synthetic-service transport, without Databricks credentials."""

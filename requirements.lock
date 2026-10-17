@@ -216,7 +216,9 @@ jmespath==1.1.0
 joblib==1.6.0
     # via scikit-learn
 jsonschema==4.26.0
-    # via mcp
+    # via
+    #   mcp
+    #   store-operations-agent
 jsonschema-specifications==2025.9.1
     # via jsonschema
 kiwisolver==1.5.1
@@ -238,6 +240,7 @@ mcp==1.30.0
     #   databricks-mcp
     #   databricks-openai
     #   openai-agents
+    #   store-operations-agent
 mlflow==3.17.0
     # via
     #   databricks-mcp

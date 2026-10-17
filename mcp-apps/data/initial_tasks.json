@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "stores": [
+    "DEMO-001",
+    "DEMO-002"
+  ],
+  "tasks": [
+    {
+      "task_id": "DEMO-SEED-001",
+      "title": "Synthetic seeded follow-up",
+      "store_id": "DEMO-001",
+      "assignee": "DEMO-MANAGER",
+      "due_date": "2030-01-15",
+      "status": "open"
+    }
+  ]
+}

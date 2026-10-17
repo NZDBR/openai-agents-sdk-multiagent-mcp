@@ -14,3 +14,5 @@ This implementation is rebased architecturally on `agent-openai-agents-sdk`, `ag
 Upstream LICENSE and NOTICE are retained. Modified derived files carry notices. `LongRunningAgentServer` is the current official advanced-template class, not `DurableAgentServer`; this project does not claim an unavailable API by that name.
 
 The official `e2e-chatbot-app-next` source/lockfile is vendored at the same commit. Only `client/src/components/chat.tsx` is extended and `store-task-review.tsx` is added for the human approval panel. Build outputs and dependencies are ignored.
+
+The `mcp-apps/` business services are a functional reconstruction from the recorded requirements, not recovered original demo source. They use the pinned MCP Python SDK FastMCP Streamable HTTP/ASGI APIs, independently from the official Agent Server runtime. No missing upstream business implementation is claimed as copied.

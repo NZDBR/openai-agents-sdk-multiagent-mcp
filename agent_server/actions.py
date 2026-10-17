@@ -8,6 +8,7 @@ from datetime import date
 import jsonschema
 from databricks_openai.agents import McpServer
 from pydantic import BaseModel, Field
+from agent_server.connections import write_client
 
 
 class TaskProposal(BaseModel):
@@ -24,9 +25,8 @@ async def decide_task(store, settings, user_client, owner, session_id, approval_
     if 'payload' not in claim or not approve:
         return {'status': claim['status'], 'task_id': claim.get('external_id')}
     try:
-        url = settings.mcp_urls(user_client.config.host)['opstask']
-        # Separate connection. Never attached to any model or specialist.
-        async with McpServer(url=url, workspace_client=user_client, name='Human-approved OpsTask writer', max_retry_attempts=0) as server:
+        # Separate writer is never attached to a model.
+        async with write_client(settings, user_client, databricks_factory=McpServer) as server:
             tools = await server.list_tools()
             tool = next(t for t in tools if t.name == settings.task_tool)
             mapping = json.loads(os.environ.get('OPSTASK_ARGUMENT_MAP', '{"title":"title","store_id":"store_id","assignee":"assignee","due_date":"due_date","idempotency_key":"idempotency_key"}'))
@@ -41,6 +41,8 @@ async def decide_task(store, settings, user_client, owner, session_id, approval_
             response = result.structuredContent
             if not response:
                 response = json.loads(next(c.text for c in result.content if c.type == 'text'))
+            if isinstance(response.get('data'), dict):
+                response = response['data']
             task_id = response.get(os.getenv('OPSTASK_RESULT_ID_FIELD', 'task_id'))
             if not isinstance(task_id, str) or not task_id:
                 raise RuntimeError('OpsTask did not return a task identifier')

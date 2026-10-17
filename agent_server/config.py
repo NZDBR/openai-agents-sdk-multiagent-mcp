@@ -44,6 +44,13 @@ class Settings:
             workflow_job=int(os.getenv('DATABRICKS_WORKFLOW_JOB_ID') or required('BACKGROUND_JOB_ID')),
         )
 
+    @property
+    def connection_mode(self):
+        mode = os.getenv('MCP_CONNECTION_MODE','databricks')
+        if mode not in {'databricks','local_demo','deployed_demo'}:
+            raise ValueError('Unknown MCP connection mode')
+        return mode
+
     def mcp_paths(self):
         return {
             'genie': f'/api/2.0/mcp/genie/{quote(self.genie_space, safe="")}',
@@ -59,6 +66,19 @@ class Settings:
         variables = {'genie': 'GENIE_MCP_URL', 'storetime': 'STORETIME_MCP_URL', 'opstask': 'OPSTASK_MCP_URL', 'confluence': 'CONFLUENCE_MCP_URL'}
         for capability, path in paths.items():
             override = os.getenv(variables[capability])
+            if capability != 'genie' and self.connection_mode != 'databricks':
+                parsed = urlparse(override or '')
+                if parsed.path != '/mcp' or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                    raise ValueError('Demo MCP requires explicit /mcp endpoint without embedded credentials')
+                if self.connection_mode == 'local_demo':
+                    if parsed.scheme != 'http' or parsed.hostname not in {'127.0.0.1','localhost','::1'}:
+                        raise ValueError('Local demo MCP requires loopback HTTP')
+                else:
+                    allowed = set(os.getenv('DEMO_MCP_ALLOWED_HOSTS','').split(','))
+                    if parsed.scheme != 'https' or parsed.hostname not in allowed or parsed.port not in {None,443}:
+                        raise ValueError('Deployed demo requires HTTPS and exact trusted host')
+                urls[capability] = override
+                continue
             if capability != 'genie' and not override and path.endswith('/'):
                 raise ValueError(f'{capability} requires a UC connection or an explicit governed MCP URL')
             url = override or host + path

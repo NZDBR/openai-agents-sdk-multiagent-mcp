@@ -42,3 +42,7 @@ RUN_DATABRICKS_INTEGRATION=1 uv run pytest -m integration -q
 Live tests additionally require their named environment variables to contain real values. The two included checks discover native Genie tools and round-trip an isolated Lakebase session (then delete that test session). They never create external OpsTask tasks. Broader staging approval and deployment acceptance should be performed with your team's configured services before release.
 
 The application-owned diff passes whitespace checks. The unmodified vendored official UI retains upstream whitespace in a few setup scripts; a whole-diff `git diff --check` reports those inherited lines. They were left intact to preserve the pinned upstream source.
+
+## Controlled reconstruction validation
+
+The lost uncommitted MCP layer was functionally reconstructed, not recovered. See [the fresh validation report](validation/DEMO_E2E_REPORT.md) and its raw evidence: 51 passed, 2 live tests skipped; frontend and wheel builds passed. These local fixture-backed checks do not establish live workspace integration.

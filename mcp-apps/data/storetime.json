@@ -1,0 +1,61 @@
+{
+  "synthetic": true,
+  "stores": [
+    "DEMO-001",
+    "DEMO-002"
+  ],
+  "schedules": [
+    {
+      "schedule_id": "S-1",
+      "store_id": "DEMO-001",
+      "employee_id": "DEMO-EMP-1",
+      "date": "2026-01-05",
+      "scheduled_hours": 8
+    },
+    {
+      "schedule_id": "S-2",
+      "store_id": "DEMO-001",
+      "employee_id": "DEMO-EMP-2",
+      "date": "2026-01-06",
+      "scheduled_hours": 8
+    }
+  ],
+  "blocks": [
+    {
+      "block_id": "B-1",
+      "store_id": "DEMO-001",
+      "employee_id": "DEMO-EMP-1",
+      "date": "2026-01-05",
+      "protected": true,
+      "scheduled_hours": 3,
+      "completed_hours": 1,
+      "converted_hours": 1
+    },
+    {
+      "block_id": "B-2",
+      "store_id": "DEMO-001",
+      "employee_id": "DEMO-EMP-2",
+      "date": "2026-01-06",
+      "protected": true,
+      "scheduled_hours": 3,
+      "completed_hours": 2,
+      "converted_hours": 1
+    }
+  ],
+  "reasons": [
+    {
+      "reason_id": "R-1",
+      "block_id": "B-1",
+      "reason_code": "PEAK_COVERAGE",
+      "description": "Synthetic recorded floor coverage contributor",
+      "converted_hours": 1
+    },
+    {
+      "reason_id": "R-2",
+      "block_id": "B-2",
+      "reason_code": "ABSENCE_COVERAGE",
+      "description": "Synthetic recorded floor coverage contributor",
+      "converted_hours": 1
+    }
+  ]
+}

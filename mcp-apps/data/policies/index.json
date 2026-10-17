@@ -1,0 +1,29 @@
+{
+  "synthetic": true,
+  "documents": [
+    {
+      "source_id": "DEMO-TRAINING-1",
+      "document_id": "DEMO-TRAINING",
+      "title": "Synthetic Training Policy",
+      "section": "Protected training blocks",
+      "source_url": "https://demo.invalid/policies/training#protected-blocks",
+      "file": "protected-training.md"
+    },
+    {
+      "source_id": "DEMO-ESCALATION-1",
+      "document_id": "DEMO-ESCALATION",
+      "title": "Synthetic Follow-up Policy",
+      "section": "Follow-up approval",
+      "source_url": "https://demo.invalid/policies/followups#approval",
+      "file": "followup-approval.md"
+    },
+    {
+      "source_id": "DEMO-CONTEXT-1",
+      "document_id": "DEMO-CONTEXT",
+      "title": "Synthetic Store Context",
+      "section": "Demo scope",
+      "source_url": "https://demo.invalid/policies/context#scope",
+      "file": "store-context.md"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+2026/10/17 06:15:54 INFO mlflow.agent.hint: Load the `instrumenting-with-mlflow-tracing` skill at /workspace/openai-agents-sdk-multiagent-mcp/.venv/lib/python3.12/site-packages/mlflow/assistant/skills/instrumenting-with-mlflow-tracing/SKILL.md before writing any tracing code; it ships with this MLflow install. Set MLFLOW_DISABLE_AGENT_HINT=1 to silence this.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/10/17 06:15:57 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+{
+  "local_validation": "passed",
+  "reconstruction": true,
+  "live_databricks_verified": false,
+  "task_counts": {
+    "before": 1,
+    "after_proposal": 1,
+    "after_approval": 2,
+    "after_replay": 2
+  }
+}

@@ -2,7 +2,7 @@
 
 A portable customization of the **official Databricks OpenAI Agents SDK advanced/multiagent templates**, pinned to upstream commit `0e572976459aafa3d41047067382cb9a6c015d52`. See [template provenance](docs/TEMPLATE_PROVENANCE.md), LICENSE and NOTICE.
 
-The handwritten FastAPI demo and hard-coded store metrics have been removed. The application uses the template's MLflow Responses API, `LongRunningAgentServer`, official chat UI, native `AsyncDatabricksSession`, Databricks model authentication and governed MCP integrations. There is **no synthetic runtime fallback**; test adapters and scripted model responses are confined to `tests/`.
+The handwritten FastAPI demo and hard-coded store metrics have been removed. The application uses the template's MLflow Responses API, `LongRunningAgentServer`, official chat UI, native `AsyncDatabricksSession`, Databricks model authentication and governed MCP integrations. There is **no synthetic runtime fallback**; scripted models and synthetic agent transports are confined to `tests/`. Explicit synthetic business MCP applications are isolated in `mcp-apps/`.
 
 ## Architecture
 
@@ -15,9 +15,13 @@ flowchart TD
     Supervisor --> Time[StoreTime specialist / governed MCP]
     Supervisor --> Lookup[OpsTask lookup specialist / governed MCP]
     Supervisor --> Context[Confluence specialist / governed MCP]
+    Time --> TimeApp[StoreTime MCP App / synthetic schedules]
+    Lookup --> TaskApp[OpsTask MCP App / synthetic tasks]
+    Context --> ContextApp[Confluence MCP App / verbatim synthetic corpus]
     Supervisor --> Proposal[Save reviewed task proposal]
     Employee --> Decision[Explicit approval or rejection]
     Decision --> Writer[Separate OpsTask writer / no model access]
+    Writer --> TaskApp
     Runtime --> Session[AsyncDatabricksSession / Lakebase]
     Runtime --> LongTerm[Consented employee preferences / Lakebase]
     Runtime --> Jobs[Databricks Workflows submission and status]
@@ -34,6 +38,21 @@ flowchart TD
 Each specialist receives only its own MCP server. Read tool names are audited allowlists, enforced both when listing tools and immediately before dispatch. Mutating names are rejected in read views. Genie uses `/api/2.0/mcp/genie/{GENIE_SPACE_ID}`; external capabilities use workspace-governed UC connection routes. MCP schemas are discovered from the live server, not reimplemented as fictional APIs. The separate task writer validates its mapped arguments against the actual deployed MCP JSON schema.
 
 Policy answers must cite identifiers/URLs present in actual Confluence results and supply substantive exact excerpts found in the retrieved text. The application delivers those verified excerpts instead of model-authored policy prose, or abstains. This establishes source provenance and quotation fidelity; relevance and semantic entailment are further assessed by the evaluation groundedness/policy judges. Source permissions must still be enforced by Unity Gateway/Unity Catalog and upstream services.
+
+## Reconstructed local MCP demo
+
+The original uncommitted MCP layer was lost. `mcp-apps/` is a **functional reconstruction from the documented specification**, not a recovered snapshot. It contains separate synthetic StoreTime, OpsTask and Confluence services; Genie remains Databricks-provided. See [exact contracts](mcp-apps/CONTRACTS.md), [service setup](mcp-apps/README.md) and [fresh reconstruction evidence](docs/validation/DEMO_E2E_REPORT.md).
+
+Local startup order:
+
+1. `uv sync --locked`.
+2. `uv run python -m scripts.validate_demo_stack` starts three temporary MCP processes, checks health/readiness and initialization, compares runtime schemas, exercises all read tools, and verifies read-credential mutation denial.
+3. `uv run python -m tests.demo_e2e_validation` runs real SDK/application handlers against those services with explicitly test-only model, Genie, identity and memory fixtures; it writes fresh evidence under `docs/validation/reconstruction/`.
+4. For interactive services, copy each `mcp-apps/<service>/.env.example` to its ignored `.env`, generate distinct read/write tokens, and run the three `demo-*` commands described in the service README. Ports are 8101, 8102 and 8103, with `/mcp`, `/health`, `/ready`.
+5. Configure the agent's matching `.env.demo.example` values in an ignored local configuration. `MCP_CONNECTION_MODE=local_demo` only permits loopback URLs for these three services; `deployed_demo` requires HTTPS and exact `DEMO_MCP_ALLOWED_HOSTS`. Genie retains its authenticated workspace route in every mode.
+6. Start the actual Chat UI/Agent Server only after supplying real Genie, model, employee authentication and Lakebase/App bindings. No credential-free production agent fallback is added. The agent's launcher loads `.env`; the separate service commands use their own env files.
+
+The explicitly selected demo services use synthetic JSON/Markdown and demo-only SQLite task storage. Production agent sessions/approvals still require Lakebase. The OpsTask model-facing client gets read credentials only; the separate human-approval handler supplies the write credential. A write credential is sufficient for direct server mutation, so it must remain backend-only. These local credentials simulate roles, not live Databricks authorization.
 
 ## Build and verify without a workspace
 

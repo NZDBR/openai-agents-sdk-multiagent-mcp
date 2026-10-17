@@ -1,0 +1,9 @@
+command:
+- uv
+- run
+- demo-storetime
+env:
+- name: MCP_READ_TOKEN
+  valueFrom: read-token
+- name: MCP_PUBLIC_HOST
+  value: ${var.storetime_public_host}

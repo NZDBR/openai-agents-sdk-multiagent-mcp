@@ -1,0 +1,13 @@
+command:
+- uv
+- run
+- demo-opstask
+env:
+- name: MCP_READ_TOKEN
+  valueFrom: read-token
+- name: MCP_PUBLIC_HOST
+  value: ${var.opstask_public_host}
+- name: MCP_WRITE_TOKEN
+  valueFrom: write-token
+- name: MCP_TASK_DB
+  value: .demo-data/tasks.db
