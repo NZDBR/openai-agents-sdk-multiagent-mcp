@@ -1,14 +1,27 @@
 name: Tests
 on: [push, pull_request]
 jobs:
-  test:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: '3.12'
-          cache: pip
-      - run: pip install -r requirements.txt
-      - run: python -m pytest -q
-      - run: python -m pip check
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - run: uv build --wheel
+  official-chat-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e-chatbot-app-next/package-lock.json
+      - run: npm ci
+        working-directory: e2e-chatbot-app-next
+      - run: npm run build
+        working-directory: e2e-chatbot-app-next

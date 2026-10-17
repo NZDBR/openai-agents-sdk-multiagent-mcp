@@ -1,0 +1,42 @@
+# Modified official Databricks Apps manifest; bind real resources at deployment.
+version: 1
+name: Store Operations Agent
+description: Official-template Store Operations agent with governed MCP, Lakebase
+  and MLflow runtime
+resource_specs:
+- name: experiment
+  description: The destination experiment for traces from the agent's execution.
+  experiment_spec:
+    permission: CAN_EDIT
+- name: llm-endpoint
+  description: The Databricks Model Serving endpoint hosting the LLM that powers the
+    agent.
+  serving_endpoint_spec:
+    permission: CAN_QUERY
+- name: postgres
+  description: Lakebase sessions, preferences, approvals and runtime tasks
+  postgres_spec:
+    permission: CAN_CONNECT_AND_CREATE
+- name: genie-space
+  description: Genie One governed analytics
+  genie_space_spec:
+    permission: CAN_RUN
+- name: storetime-mcp
+  description: storetime governed UC connection
+  uc_securable_spec:
+    securable_type: CONNECTION
+    permission: USE_CONNECTION
+- name: opstask-mcp
+  description: opstask governed UC connection
+  uc_securable_spec:
+    securable_type: CONNECTION
+    permission: USE_CONNECTION
+- name: confluence-mcp
+  description: confluence governed UC connection
+  uc_securable_spec:
+    securable_type: CONNECTION
+    permission: USE_CONNECTION
+- name: background-job
+  description: Fixed background evaluation Workflow
+  job_spec:
+    permission: CAN_MANAGE_RUN

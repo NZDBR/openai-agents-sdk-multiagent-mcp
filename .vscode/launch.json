@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [{
+    "name": "Databricks Store Operations Agent Server",
+    "type": "debugpy",
+    "request": "launch",
+    "program": "${workspaceFolder}/.venv/bin/start-server",
+    "cwd": "${workspaceFolder}",
+    "envFile": "${workspaceFolder}/.env",
+    "justMyCode": false
+  }]
+}

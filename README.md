@@ -1,97 +1,160 @@
-# Fieldwork · Store Operations Agent
+# Databricks Store Operations Agent
 
-Store-operations chat application built with **OpenAI Agents SDK**, FastAPI and a responsive browser UI. Run a synthetic demo locally, or configure live MCP, Databricks identity, Lakebase, Workflows and MLflow integrations.
+A portable customization of the **official Databricks OpenAI Agents SDK advanced/multiagent templates**, pinned to upstream commit `0e572976459aafa3d41047067382cb9a6c015d52`. See [template provenance](docs/TEMPLATE_PROVENANCE.md), LICENSE and NOTICE.
 
-## Quick start
+The handwritten FastAPI demo and hard-coded store metrics have been removed. The application uses the template's MLflow Responses API, `LongRunningAgentServer`, official chat UI, native `AsyncDatabricksSession`, Databricks model authentication and governed MCP integrations. There is **no synthetic runtime fallback**; test adapters and scripted model responses are confined to `tests/`.
 
-Python 3.12+:
-
-```bash
-python -m venv .venv
-.venv/bin/python -m pip install -r requirements.lock
-.venv/bin/python -m pytest -q
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Open the app on port 8000 in your development environment. `APP_MODE=demo` is the default. All demo store data is explicitly synthetic; demo chat is deterministic and makes no model calls. The UI supports analytics, training diagnostics, follow-up lookup, proposals, approval and rejection. SQLite at `/tmp/store-operations.db` retains local history, preferences, approvals and tasks. Recreating it removes local data. Demo session identifiers are not employee authentication.
-
-## Architecture and boundaries
+## Architecture
 
 ```mermaid
 flowchart TD
-    Employee --> Chat[Databricks App / Chat UI]
-    Chat --> Agent[Store Operations / OpenAI Agents SDK]
-    Agent --> Genie[Genie specialist / governed metrics MCP]
-    Agent --> Time[StoreTime specialist / read-only diagnostics MCP]
-    Agent --> Tasks[OpsTask specialist / follow-up lookup MCP]
-    Agent --> Context[Confluence specialist / company context MCP]
-    Chat --> Approval[Explicit user approval / durable state]
-    Approval --> Writer[OpsTask write MCP / idempotency key]
-    Agent --> Memory[Short-term and opt-in long-term memory / Lakebase]
-    Chat --> Jobs[Confirmed Databricks Workflow submission]
-    Agent --> Traces[MLflow traces]
+    Employee --> UI[Official Databricks chat UI + task review]
+    UI --> Runtime[MLflow Responses API / LongRunningAgentServer]
+    Runtime --> Supervisor[OpenAI Agents SDK Store Operations supervisor]
+    Supervisor --> Genie[Genie One specialist / native Genie Space MCP]
+    Supervisor --> Time[StoreTime specialist / governed MCP]
+    Supervisor --> Lookup[OpsTask lookup specialist / governed MCP]
+    Supervisor --> Context[Confluence specialist / governed MCP]
+    Supervisor --> Proposal[Save reviewed task proposal]
+    Employee --> Decision[Explicit approval or rejection]
+    Decision --> Writer[Separate OpsTask writer / no model access]
+    Runtime --> Session[AsyncDatabricksSession / Lakebase]
+    Runtime --> LongTerm[Consented employee preferences / Lakebase]
+    Runtime --> Jobs[Databricks Workflows submission and status]
+    Runtime --> MLflow[UC-backed traces and evaluations]
 ```
 
-| Tool | Contains / can do | Cannot do |
+| Capability | Contains / allowed | Excluded |
 | --- | --- | --- |
-| Genie | Governed metrics, region, training completion, scheduled/completed hours, wait time; analytics, comparisons and tables | Tasks, schedule updates, approvals, policy |
-| StoreTime | Schedules, protected blocks, completed/converted hours, coverage reasons; training root-cause diagnostics | Change schedules or create tasks |
-| OpsTask | Look up follow-ups; create a task after explicit approval | Silent creation; root-cause diagnosis alone |
-| Confluence | Retrieved company context with citations | Invent policy or authorize actions |
+| **Genie One MCP** | Governed store metrics, region, training completion, scheduled/completed hours, wait time; analytics, comparisons, completion tables | Task creation, schedule updates, approvals, policy |
+| **StoreTime MCP** | Read-only schedules, protected training blocks, completed/converted hours, coverage reasons; training diagnostics | Schedule changes, task creation |
+| **OpsTask MCP** | Follow-up lookup; mutation only after a separate human approval command | Silent creation; diagnosing root cause alone |
+| **Confluence MCP** | Governed company context and policy, citing retrieved sources | Invented or uncited policy |
 
-Live orchestration exposes four specialists as tools to a supervisor. Each specialist sees only its own MCP server and an administrator-configured tool allowlist. No task-write tool is available to the model. Live providers must still enforce store-level data access and read-only permissions server-side; allowlists select tool names, not argument-level authorization.
+Each specialist receives only its own MCP server. Read tool names are audited allowlists, enforced both when listing tools and immediately before dispatch. Mutating names are rejected in read views. Genie uses `/api/2.0/mcp/genie/{GENIE_SPACE_ID}`; external capabilities use workspace-governed UC connection routes. MCP schemas are discovered from the live server, not reimplemented as fictional APIs. The separate task writer validates its mapped arguments against the actual deployed MCP JSON schema.
 
-## Configuration
+Policy answers must cite identifiers/URLs present in actual Confluence results and supply substantive exact excerpts found in the retrieved text. The application delivers those verified excerpts instead of model-authored policy prose, or abstains. This establishes source provenance and quotation fidelity; relevance and semantic entailment are further assessed by the evaluation groundedness/policy judges. Source permissions must still be enforced by Unity Gateway/Unity Catalog and upstream services.
 
-See [.env.example](.env.example) for variable names. It is documentation only; the app does not automatically load this file. Supply secrets through secure environment bindings, never source control.
+## Build and verify without a workspace
 
-- `APP_MODE=live`, `OPENAI_API_KEY`, optional `OPENAI_MODEL` (default `gpt-4.1`).
-- `GENIE_MCP_URL`, `STORETIME_MCP_URL`, `OPSTASK_READ_MCP_URL`, `CONFLUENCE_MCP_URL`: Streamable HTTP HTTPS endpoints.
-- Each endpoint requires an explicit comma-separated `<PREFIX>_TOOLS` allowlist and optionally its own `<PREFIX>_TOKEN`. For example `GENIE_MCP_TOOLS=query_store_metrics` and `GENIE_MCP_TOKEN`. Tool names are deployment-specific; example names are not assumed real APIs.
-- `DATABRICKS_HOST`: workspace HTTPS origin. Live API calls require a Databricks user token in `X-Forwarded-Access-Token`; the backend verifies it through workspace SCIM `/Me` and scopes data to the returned identity. Enable and validate Databricks Apps user authorization and required scopes. Do not substitute an unverified employee header.
-- `LAKEBASE_DSN`: PostgreSQL connection string supplied securely. Live storage requires it. Connections enforce `sslmode=verify-full`; configure the trusted CA with `PGSSLROOTCERT` when needed. Development uses SQLite. Provide least-privilege table ownership/grants; the initial schema is created on first use. Production schema migrations should be run with a separate migration role.
-- `OPSTASK_WRITE_MCP_URL`, optional `OPSTASK_WRITE_MCP_TOKEN`, `OPSTASK_WRITE_TOOL`: explicit task-write adapter. Contract: accepts `{title, idempotency_key}` and returns structured `{task_id}` (or equivalent JSON text). The server **must** honor idempotency keys and enforce authorized task scope. If your tool has a different schema, adapt `app/integrations.py` before enabling writes.
-- `DATABRICKS_WORKFLOW_JOB_ID`, `DATABRICKS_WORKFLOW_TOKEN`: fixed administrator-approved background job. A confirmed request calls Jobs `run-now` with an identity-scoped idempotency token. No arbitrary job selection or parameters are accepted.
-- `MLFLOW_TRACKING_URI`: enables OpenAI autologging in live chat. Supply tracking authentication through your workspace binding. Review tracing access and retention because traces may include employee questions and tool output.
-
-Live mode is an integration implementation, not a claim that any external service has been provisioned, authenticated or exercised in this checkout.
-
-## APIs
-
-All application data endpoints require an alphanumeric `X-Session-ID` of 20–128 characters, plus verified Databricks user authorization in live mode.
-
-| Endpoint | Behavior |
-| --- | --- |
-| `GET /api/health` | Process status and mode; explicitly does not certify external connectivity |
-| `POST /api/chat` | `{message}` → answer, evidence, optional proposal |
-| `GET /api/tasks` | Locally recorded tasks for this user/session; live chat can query external OpsTask follow-ups |
-| `POST /api/approvals/{id}` | `{approve: true/false}`; only owner can act; terminal decisions cannot be replayed |
-| `GET, DELETE /api/memory/short-term` | Read or clear bounded conversation history |
-| `GET, POST /api/memory/long-term` | Read preferences; save `{content, consent:true}` |
-| `DELETE /api/memory/long-term/{id}` | Owner-scoped deletion |
-| `POST /api/workflows` | `{confirm:true, request_id:"20To64AlphanumericChars"}`; demo simulates; live submits fixed job |
-
-Live long-term preferences are employee-scoped; short-term history and approvals are employee/session-scoped. Preferences are included as untrusted context, never policy. Long-term storage requires explicit consent and supports deletion. Set organization retention and auditing policies before production.
-
-Approval state is claimed durably before external execution. Duplicate approval does not invoke the writer twice. A timeout or uncertain remote result moves the proposal to `needs_reconciliation`, never automatic retry. Reconcile by approval ID with OpsTask before creating another request. A crash may leave `executing`; treat this as the same manual reconciliation condition. This favors avoiding duplicate writes over automatic recovery. Task titles are reviewed verbatim; add structured store/assignee/due-date fields to match your provider's validated schema where required.
-
-## Databricks deployment
-
-`app.yaml` defines the Databricks Apps launch command and demo default. Bind resources and secrets to the App service principal, configure user authorization, then deploy using your workspace's supported Apps workflow. Unity Catalog governance is enforced in the connected Genie, Confluence and data resources: apply least-privilege grants and row/column policies there. Confirm store-level authorization through the MCP service before production.
-
-The source repository was initially empty. This implementation follows the framework shape of a Python Databricks App but **was not generated from or verified against an official Databricks app template**. Reconcile the manifest, runtime and identity requirements with your chosen current template before deployment.
-
-Agent Bricks is the external authoring platform. The requested harness is named both “Omnigen” and “Omnigent”; no supported harness API or CLI was provided. Its debugging/deployment integration is documented as a deployment prerequisite rather than an invented executable. See [deployment checklist](docs/deployment.md).
-
-## Tests and evaluations
+Prerequisites: Python 3.12, Node 22+, npm, `uv` (0.9.17+).
 
 ```bash
-.venv/bin/python -m pytest -q
-.venv/bin/python -m scripts.evaluate
-# Optional: with a configured MLflow tracking backend
-.venv/bin/python -m scripts.evaluate --mlflow
+uv sync --locked
+uv run pytest -q
+npm ci --prefix e2e-chatbot-app-next
+npm run build --prefix e2e-chatbot-app-next
+uv build --wheel
 ```
 
-Tests cover approval ownership, rejection, repeated approval, ambiguous-write recovery, memory consent/deletion/isolation, workflow confirmation, schedule restrictions, endpoint validation and credential separation. Live task execution is tested with a fake adapter; tests do not call actual Databricks services. The evaluation script runs explicit deterministic behavior cases and can log their metrics to MLflow. It is not a live model-quality evaluation. Add workspace-specific labeled prompts and verify trace/evaluation results before release. GitHub Actions runs tests and dependency checks.
+Tests run real SDK orchestration with scripted models and test-only MCP transports. They validate boundaries, proposal/approval/rejection, identity scoping, Lakebase adapter contracts, workflow SDK calls, Responses streaming shape, runtime construction, evaluation scorers and local MLflow trace readback. They do not require Databricks credentials. Live checks are marked `integration` and skipped unless explicitly opted in **and** their required configuration is present.
 
-`requirements.txt` defines direct dependency ranges; `requirements.lock` captures the validated Python 3.12 environment for reproducible installation. Refresh and test the lock deliberately when updating dependencies.
+There is no credential-free production server mode. Missing configuration fails clearly at startup; it does not return synthetic analytics. See [validation levels](docs/VALIDATION.md).
+
+## Supply configuration later
+
+Copy `.env.example` to an ignored `.env`, or bind values through Databricks Apps resources/secrets or CI. Local startup loads `.env` before importing the agent, as in the official template. All workspace/resource identities remain configurable; no source edits are required.
+
+| Setting | Value to supply |
+| --- | --- |
+| `DATABRICKS_HOST` | `https://<workspace-host>` |
+| `DATABRICKS_CONFIG_PROFILE` | `<databricks-profile>` for local CLI/SDK use |
+| `DATABRICKS_APP_NAME` | Platform-injected deployed app name; leave unset for local profile development |
+| `MODEL_ENDPOINT` | `<model-serving-endpoint>` (Databricks-hosted, OpenAI-compatible chat completions) |
+| `LAKEBASE_ENDPOINT` | `<autoscaling-endpoint-resource-path>`; alias for upstream `LAKEBASE_AUTOSCALING_ENDPOINT` |
+| `GENIE_SPACE_ID` | `<genie-space-id>` |
+| `GENIE_MCP_URL` | Optional `https://<workspace-host>/api/2.0/mcp/genie/<genie-space-id>` |
+| `STORETIME_CONNECTION`, `OPSTASK_CONNECTION`, `CONFLUENCE_CONNECTION` | `<uc-connection-name>` for each external MCP service |
+| `STORETIME_MCP_URL`, `OPSTASK_MCP_URL`, `CONFLUENCE_MCP_URL` | Optional full workspace UC gateway route overrides |
+| `STORETIME_READ_TOOLS`, `OPSTASK_READ_TOOLS`, `CONFLUENCE_READ_TOOLS` | Actual audited, comma-separated read-only tool names discovered from deployed MCP schemas |
+| `OPSTASK_CREATE_TOOL` | Actual task mutation tool name, never exposed to the model |
+| `OPSTASK_ARGUMENT_MAP`, `OPSTASK_RESULT_ID_FIELD` | Provider-specific argument/result field mappings; validated against discovered schema |
+| `DATABRICKS_WORKFLOW_JOB_ID` | `<workflow-job-id>`; bundle binds its background evaluation job by default |
+| `MLFLOW_EXPERIMENT_ID` | `<experiment-id>` bound to the chosen UC trace location |
+| `MLFLOW_TRACING_SQL_WAREHOUSE_ID` | `<sql-warehouse-id>` for UC trace provisioning/readback |
+| `STORE_OPS_SCHEMA`, `LAKEBASE_AGENT_MEMORY_SCHEMA` | `<lakebase-schema>` for app tables and SDK session tables; keep them consistent |
+
+`LAKEBASE_ENDPOINT` means the Databricks autoscaling **resource path** expected by the pinned SDK, not a raw PostgreSQL host. The Lakebase library discovers connection details and rotates OAuth credentials. No static DSN/password or SQLite path is used. Upstream SDK TLS defaults remain enabled.
+
+Full MCP URL overrides are restricted to the authenticated workspace's HTTPS origin and capability-appropriate gateway paths. This prevents forwarding employee OAuth credentials to arbitrary URLs. For non-workspace external servers, register a UC connection and use the workspace gateway; do not point these settings directly at third-party hosts.
+
+Discover real schemas when the workspace is available:
+
+```bash
+uv run python -m scripts.inspect_mcp --profile '<databricks-profile>' \
+  --path '/api/2.0/mcp/external/<connection-name>'
+```
+
+Environment variables are bindings, **not evidence that a service is connected**. No deployment or live connectivity is claimed from configuration alone.
+
+## DEV deployment
+
+1. Install the current Databricks CLI and authenticate to your chosen profile. Always pass `--profile` so commands cannot silently target a different workspace.
+2. Provision/select the Genie Space, three UC MCP connections, Lakebase endpoint/branch/database, model and judge endpoints, cluster for evaluation jobs, SQL warehouse and MLflow experiment. Apply the grants in [governance](docs/GOVERNANCE.md). Resource creation remains an operator action; placeholders are deliberate.
+3. Populate ignored local environment values. Apply the additive SQL schema using a migration identity:
+
+   ```bash
+   uv run python -m scripts.migrate
+   ```
+
+   The native session tables are initialized during agent startup. Grant only required SQL access to the app principal; see `scripts/grant_lakebase_permissions.py` and governance notes.
+4. Choose an existing UC trace schema explicitly and bind the experiment (this provisions trace tables):
+
+   ```bash
+   uv run python -m scripts.configure_traces --profile '<databricks-profile>' \
+     --experiment-id '<experiment-id>' --catalog '<catalog>' --schema '<schema>'
+   ```
+
+   The script discovers a SQL warehouse if none is specified. An experiment already bound elsewhere is rejected. No arbitrary catalog/schema is selected, and there is no fallback to ungoverned legacy trace storage.
+5. Supply DAB variables from `config/dev.env.example` via `BUNDLE_VAR_*` environment variables or an ignored `databricks.local.yml`. Examples:
+
+   ```bash
+   export BUNDLE_VAR_workspace_host="$DATABRICKS_HOST"
+   export BUNDLE_VAR_app_name="$DATABRICKS_APP_NAME"
+   export BUNDLE_VAR_lakebase_endpoint="$LAKEBASE_ENDPOINT"
+   export BUNDLE_VAR_genie_space_id="$GENIE_SPACE_ID"
+   # Set the remaining documented BUNDLE_VAR_* bindings too.
+   databricks bundle validate -t dev --profile '<databricks-profile>'
+   databricks bundle deploy -t dev --profile '<databricks-profile>'
+   databricks bundle run store_operations -t dev --profile '<databricks-profile>'
+   ```
+
+   Run startup with `uv run start-app` for local authenticated development; `ALLOW_LOCAL_PROFILE_IDENTITY=true` explicitly permits the verified CLI profile identity outside Databricks Apps. Production requests require a forwarded employee token validated against Databricks `/Me`.
+6. Enable Databricks Apps user authorization and required workspace/data scopes. Verify cross-employee/store access, source retrieval, an approval/rejection cycle and the Workflow job before using employee data.
+
+The `dev` and `prod` targets share the same variable contract and differ in DAB deployment mode. Supply different values and principals for each environment; the app source does not change. See `config/prod.env.example`. Do not copy DEV credentials to PROD.
+
+## Human actions and memory
+
+The official chat UI includes a task-review panel. The model's `propose_task` stores the exact title, store, assignee and due date in Lakebase and returns a pending proposal. Only a separate employee command may claim that proposal and invoke the mutation tool. Rejection is permanent; approval replays cannot issue a second write. An ambiguous outcome becomes `needs_reconciliation`; a crash can leave `executing`. Reconcile by approval ID with OpsTask rather than resetting/retrying. The provider must honor the mapped idempotency key and enforce row/store permissions.
+
+The native Responses endpoint `/invocations` accepts `custom_inputs.action`:
+
+| Action | Additional fields | Effect |
+| --- | --- | --- |
+| `chat` (default) | `session_id` | SDK orchestration using employee/session-scoped Lakebase history |
+| `pending_proposals` | `session_id` | List proposals visible to that employee/conversation |
+| `task_decision` | `session_id`, `approval_id`, `approve: true/false` | Explicit human approval/rejection |
+| `remember` | `content`, `consent: true` | Opt-in employee-scoped long-term preference |
+| `memories` / `forget` | `memory_id` for deletion | Inspect/delete the employee's preferences |
+| `clear_session` | `session_id` | Delete the current conversation's native SDK session |
+| `workflow_submit` | `request_id`, `confirm: true` | Submit the fixed Databricks evaluation Workflow |
+| `workflow_status` | same `request_id` | Retrieve the recorded employee-owned run's state |
+
+Only the latest user message is accepted as new chat input. The server loads prior history from Lakebase and ignores client-supplied historical tool/assistant authority. Identity comes from the verified token, never a supplied `user_id`. PostgreSQL advisory locks serialize turns per employee/conversation. Short-term history includes real SDK messages and tool results. Long-term preferences are explicitly consented, deletable, and treated as untrusted context rather than policy.
+
+## MLflow evaluation and Workflows
+
+`evaluations/datasets/store_operations.jsonl` contains analytics, diagnostics, policy and adversarial approval/boundary cases. `evaluations/scorers.py` defines tool-selection, task-approval safety and policy-provenance scorers, plus MLflow groundedness, policy-compliance, response-quality, relevance and fluency judges.
+
+```bash
+uv run agent-evaluate --judge-model 'databricks:/<judge-serving-endpoint>'
+```
+
+This executes the actual agent against configured resources and logs trace-linked evaluations. It is intentionally a live operation, not a canned fixture evaluation. The DAB job runs the same packaged suite on a configured Databricks cluster. Jobs API submission uses a stable employee-scoped idempotency token; job status is owner-scoped. The fixed job performs evaluations and can create review proposals, but never approves or mutates OpsTask. Configure an evaluation-safe data scope and model budget before scheduling it.
+
+## Omnigent, Codex and validation limits
+
+See [OMNIGENT_SETUP.md](OMNIGENT_SETUP.md) for the team-specific harness handoff. No authoritative Omnigent schema was available in the pinned public template, so no fabricated config is claimed as valid. Codex repository guidance is in `AGENTS.md`; a standard VS Code launch configuration supports debugging the actual Agent Server entry point.
+
+Local verification and live verification are distinct. [docs/VALIDATION.md](docs/VALIDATION.md) records the checks and gaps. Actual Databricks deployment, UC/Unity Gateway grants, Lakebase persistence, external MCP schemas and mutations, MLflow workspace export/judges and Workflow execution require a configured workspace and have not been certified by local tests.
