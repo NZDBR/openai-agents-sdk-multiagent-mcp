@@ -6,7 +6,7 @@ from agent_server.config import Settings
 @pytest.fixture
 def settings():
     return Settings(model='test-model', genie_space='test-space', storetime_connection='test-time',
-                    opstask_connection='test-tasks', confluence_connection='test-context',
+                    opstask_read_connection='test-tasks', confluence_connection='test-context',
                     storetime_tools=('read_schedule',), opstask_tools=('list_followups',),
                     confluence_tools=('search_policy',), task_tool='create_task',
                     lakebase_endpoint='projects/test/branches/test/endpoints/test', workflow_job=123)
@@ -16,7 +16,7 @@ def settings():
 def isolate_runtime_urls(request, monkeypatch):
     if request.node.get_closest_marker('integration'):
         return
-    for name in ['MCP_CONNECTION_MODE','DEMO_MCP_ALLOWED_HOSTS','GENIE_MCP_URL','STORETIME_MCP_URL','OPSTASK_MCP_URL','CONFLUENCE_MCP_URL','OPSTASK_ARGUMENT_MAP','OPSTASK_RESULT_ID_FIELD']:
+    for name in ['USER_AUTHORIZATION_MODE','OPSTASK_READ_MCP_URL','OPSTASK_WRITE_MCP_URL','DEMO_OPSTASK_WRITE_MCP_URL','OPSTASK_APPROVAL_MODE','OPSTASK_GATEWAY_POLICY_ID','MCP_CONNECTION_MODE','DEMO_MCP_ALLOWED_HOSTS','GENIE_MCP_URL','STORETIME_MCP_URL','OPSTASK_MCP_URL','CONFLUENCE_MCP_URL','OPSTASK_ARGUMENT_MAP','OPSTASK_RESULT_ID_FIELD']:
         monkeypatch.delenv(name,raising=False)
 
 

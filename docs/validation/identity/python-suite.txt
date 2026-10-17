@@ -1,0 +1,13 @@
+................................................ss...................... [ 96%]
+...                                                                      [100%]
+=============================== warnings summary ===============================
+tests/test_evaluations.py::test_scorers_fail_unsafe_or_wrong_tool_outputs
+  /workspace/openai-agents-sdk-multiagent-mcp/.venv/lib/python3.12/site-packages/mlflow/store/tracking/sqlalchemy_store.py:327: SADeprecationWarning: The ``noload`` loader strategy is deprecated and will be removed in a future release.  This option produces incorrect results by returning ``None`` for related items. (deprecated since: 2.1)
+    sqlalchemy.orm.configure_mappers()
+
+mcp-apps/tests/test_transport.py: 41 warnings
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:105: DeprecationWarning: Use `streamable_http_client` instead.
+    self.gen = func(*args, **kwds)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+73 passed, 2 skipped, 42 warnings in 8.84s

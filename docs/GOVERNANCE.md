@@ -1,38 +1,69 @@
-# Unity Gateway / Unity Catalog permissions
+# Enterprise identity and least-privilege MCP authorization
 
-This project uses the workspace-managed MCP surface. External services are registered as Unity Catalog connections and accessed through `/api/2.0/mcp/external/<connection>`. Genie uses the native space endpoint. If your workspace exposes these through a Unity Gateway deployment, configure its policies at that gateway; this repository does not assert an undocumented Gateway admin schema/API.
+The runtime retains the pinned official Databricks Agent Server and OpenAI Agents SDK scaffold. Identity selection is explicit in `agent_server/identity.py` and `agent_server/connections.py`. Resource names, OAuth scope values and policy IDs are deployment inputs, never evidence that access exists.
 
-## Resource bindings
+## Interactive reads: verified employee / OBO
 
-`databricks.yml` declares the app principal's required bindings:
+The App platform supplies `x-forwarded-access-token`. `user_workspace_client()` passes that token to the SDK using the pinned template convention (`auth_type='pat'` is bearer-token pass-through, not a claim that the OAuth token is a PAT). `employee()` verifies it through `current_user.me()`. Each `user_mcp_client()` receives this same employee client for Genie, StoreTime, OpsTask lookup and Confluence. No read factory constructs an app writer or reads write credentials. An absent token in a deployed App fails closed; no service-principal fallback is permitted.
 
-| Resource | Permission |
-| --- | --- |
-| Genie One space | `CAN_RUN` |
-| StoreTime UC connection | `USE_CONNECTION` |
-| OpsTask UC connection | `USE_CONNECTION` |
-| Confluence UC connection | `USE_CONNECTION` |
-| Model serving endpoint | `CAN_QUERY` |
-| MLflow experiment | `CAN_MANAGE` (reduce if your platform supports the needed trace operations with a smaller grant) |
-| Lakebase branch/database | `CAN_CONNECT_AND_CREATE` per upstream bootstrap template |
-| Fixed Workflow job | `CAN_MANAGE_RUN` |
+`USER_AUTHORIZATION_MODE=obo` is the deployed default. Explicit `local_profile` plus `ALLOW_LOCAL_PROFILE_IDENTITY=true` permits CLI development outside an App. This profile is not OBO evidence. Noninteractive Workflow evaluation explicitly uses its configured job identity with this profile mode; it does not impersonate a human employee. Never enable that mode as a substitute for App user authorization.
 
-The Workflow runs as the configurable `job_service_principal`. Grant that principal the same evaluation-required model/judge, Genie, UC connection, Lakebase and MLflow access; app resource bindings do not automatically grant a different job identity those permissions. The job cluster must allow that execution identity.
+The proxy/Agent Server must be reachable only through trusted platform ingress so clients cannot supply forged forwarded headers. Preserve the official UI server's forwarding behavior. Verifying a supplied token establishes its identity; trusting arbitrary browser-supplied identity strings does not. `custom_inputs` cannot choose identities, credentials, service URLs or approval owners.
 
-Resource grants are deploy-time configuration, not proof that the connected data permissions are correct. Requests authenticate with the forwarded employee token for MCP calls. Both the app principal and employees need the appropriate access for the configured OBO route. Verify token scopes and gateway behavior in your workspace.
+## Privileged writes: trusted backend identity
 
-## Data permissions
+`decide_task()` verifies the explicit boolean decision and atomically claims the employee/session-bound persisted proposal **before** calling `app_write_mcp_client()`. It receives no employee SDK client to reuse. Rejection, wrong-owner requests and replay never construct a writer. The model can save a proposal, but receives neither a write tool nor a write credential. The browser posts only approval ID and decision, not reviewed-payload replacements or backend authentication.
 
-- Grant `USE CATALOG`, `USE SCHEMA` and `SELECT` only on the tables/views the Genie Space needs. Apply store/region row filters and sensitive-column masks in UC. Do not grant unrestricted SQL or table-write functions to the analytics capability.
-- Restrict StoreTime credentials/service-side endpoints to schedule/training reads. Remove schedule mutations from the exposed server or enforce their denial at the gateway even if a broader API exists upstream.
-- Split/audit OpsTask lookup versus mutation permissions. The application does not expose mutation tools to any model. The writer rechecks the employee via OBO, validates the live tool schema, uses an immutable reviewed payload and a durable idempotency key. The provider must enforce store/assignee authorization and remote idempotency.
-- Confluence credentials must honor company document ACLs. Return actual source URLs/document IDs with excerpts. Retrieval from an inaccessible or nonexistent policy cannot be replaced by model-generated policy.
-- Configure gateway tool allowlists, argument constraints, audit logs and credential handling using the supported workspace interface. The application's allowlist is defense in depth; a misleadingly named tool can still be mutating, so administrator review and upstream scopes are mandatory.
+The writer uses one of two explicit backend identities:
 
-## Lakebase and traces
+- `OPSTASK_WRITE_AUTH_MODE=app`: require an actual App deployment and use platform-injected `DATABRICKS_CLIENT_ID` / `DATABRICKS_CLIENT_SECRET`.
+- `OPSTASK_WRITE_AUTH_MODE=m2m`: use separately secret-bound `OPSTASK_WRITE_CLIENT_ID` / `OPSTASK_WRITE_CLIENT_SECRET` for a dedicated backend service principal.
 
-Use a migration/bootstrap principal for schema creation. The app runtime needs access to session tables, `memories`, `approvals` and `workflow_runs`, not unrelated employee tables. Native session initialization currently follows the pinned template's private `_ensure_tables()` startup API; the dependency lock and runtime tests protect that integration. Move DDL to deployment migrations when tightening runtime grants.
+Both construct `WorkspaceClient(auth_type='oauth-m2m', ...)`, with configured `OPSTASK_WRITE_OAUTH_SCOPES`. They never inspect forwarded employee tokens or fall back to a PAT/profile. Credentials remain backend-only; do not add them to frontend configuration, model instructions, tool schemas, traces or responses. Model-facing read-client construction never receives the writer factory.
 
-`STORE_OPS_SCHEMA` and `LAKEBASE_AGENT_MEMORY_SCHEMA` are configurable SQL namespaces. Long-term memory is employee-scoped and opt-in, with deletion. Set retention and deletion policies for session history, preferences, proposal audit records, runtime tasks and traces. A UC resource grant alone does not implement retention.
+`OPSTASK_READ_CONNECTION` (legacy read alias: `OPSTASK_CONNECTION`) and `OPSTASK_WRITE_CONNECTION` are distinct UC connections. `OPSTASK_READ_MCP_URL` (legacy alias: `OPSTASK_MCP_URL`) and `OPSTASK_WRITE_MCP_URL` optionally override their respective workspace-governed routes. Production writer configuration fails if missing, cross-origin or equal to the read service. There is no write-to-read fallback. Demo mode is explicitly separate and may share one synthetic server with role-separated credentials.
 
-MLflow traces include employee inputs and retrieved context. Use a deliberately selected `<catalog>.<schema>` trace location, required warehouse permissions, and restricted experiment/table access. No trace-schema creation occurs implicitly during chat requests. The setup script only binds an operator-selected schema.
+The default DAB/manifest describes **app-identity** writes. For dedicated M2M deployment, use the reviewed secret-resource fragment in `config/m2m-write-bindings.example.yaml` as a configuration example (not automatically included), bind the backend secret only to the trusted server using Apps secret resources, grant invocation rights to that dedicated principal, and tailor the deployment resource bindings to avoid granting the App principal redundant write access. Merely selecting `m2m` does not change existing UC grants. The app resource definitions do not automatically grant a different backend principal permission.
+
+## Who may call which service
+
+| Identity | Intended MCP grants | Must not receive |
+| --- | --- | --- |
+| Employee / read role | Native Genie Space access; read-only StoreTime, OpsTask-read and Confluence invocation; underlying store/document permissions | OpsTask-write connection/service invocation or its credentials |
+| App SP acting as writer | Minimum invocation grant on OpsTask-write; other App runtime resources only as operationally required | MCP CREATE/MANAGE/ownership or unrelated data access |
+| Dedicated backend M2M SP | Minimum invocation grant on OpsTask-write | Read-service/admin grants unless separately justified |
+| Deployment administrator | Separately authorized provisioning/policy operations | Runtime use of administrator credentials |
+
+For the pinned external UC connection route, the resource privilege is `USE_CONNECTION` (`USE CONNECTION` in SQL grants). Native Genie uses `CAN_RUN` on its configured space plus underlying governed data access. If using a supported Unity Gateway MCP-service securable instead, grant the platform's service invocation privilege (for example EXECUTE where applicable) only to the corresponding identity. Do not invent a grant syntax or service securable unsupported by your workspace.
+
+The DAB and manifest encode separate OpsTask read/write bindings using the pinned connection resource shapes and no MCP administration grants. The operator-reviewed `config/mcp-grants.sql.example` encodes the minimal connection-grant plan; it is not executed by the app. Audit existing and inherited group grants, since omitting a grant in this file is not an explicit deny. Employee group grants and upstream service permissions must be provisioned separately by an authorized administrator. Where an OBO route requires both App resource permission and employee permission, grant the minimum needed at both layers; the actual request still uses the employee token. A connection registration must preserve end-user ACLs where required; an upstream connector using a generic shared credential is not proof of employee-specific authorization.
+
+## OAuth scopes and authorization checks
+
+Enable Databricks Apps **user authorization** and configure/consent the supported scopes needed for: verifying user identity, native Genie MCP, invoking each read UC connection/service, and upstream access required by those reads. Add model/SQL scopes only if those calls actually execute as the employee. Never include write-service access in the employee grant set. Scope strings and permission names vary with the selected supported route/platform release: obtain their exact values from the workspace's Apps authorization UI and endpoint documentation. The forwarded token cannot be elevated by an environment variable.
+
+Supply `OPSTASK_WRITE_OAUTH_SCOPES` as the comma-separated supported scopes for the chosen backend MCP route. The code passes this list to the SDK; it does not silently default to broad `all-apis`. OAuth scope is not a substitute for UC/service permissions. No new unverified Apps `user_api_scopes` or Gateway schema is added to the pinned manifest.
+
+Public documentation requests in this task were blocked by the network proxy. APIs used for credential construction were checked against the installed locked SDK and the pinned template helper. Exact live scope identifiers, Gateway policy attachment and ACL behavior remain workspace validation requirements, not local claims.
+
+## Human approval modes
+
+`OPSTASK_APPROVAL_MODE` selects operator intent:
+
+**Mode A — `application`:** employee approval → trusted handler → backend identity → OpsTask write MCP.
+
+**Mode B — `application_and_gateway_ask`:** Mode A plus a separately attached Unity Gateway MCP service policy returning `ASK` for sensitive input calls. Set `OPSTASK_GATEWAY_POLICY_ID` to the operator-selected policy identifier. This is configuration metadata, not an attachment request or proof of enforcement. Attach and verify the policy using the supported platform interface; the feature and approval protocol may depend on preview availability.
+
+UC grants answer **who may call the service**. The application approval record answers **whether this specific mutation was approved**. Optional Gateway `ASK` adds per-request approval of MCP input calls. No approval table is duplicated inside the MCP server, and no custom/fabricated policy API or automatic `ASK` acceptance is implemented. If the locked client surfaces a challenge/error or no confirmed task ID, the application fails closed into `needs_reconciliation`, without retrying the mutation. Verify the platform's complete challenge/resume interaction before enabling Mode B; local configuration tests do not certify that interaction.
+
+The reviewed payload is immutable; the approval ID is sent as an idempotency key. A confirmed replay returns the recorded task ID. Unknown outcomes require reconciliation; do not create a new request ID to work around them. Restrict task store/assignee permissions at the writer/upstream service, since the backend acts with elevated authority.
+
+## Local simulation and validation
+
+The reconstructed synthetic Apps retain separate read and write tokens. Read tokens cannot discover or invoke `create_task`; the model specialist also independently rejects mutation dispatch. Only the application approval path obtains the synthetic writer token. A holder of that write token can call the demo server directly: it is a simulation of backend service access, not a signed approval artifact. Preserve token secrecy and HTTPS/host allowlists for deployed demos.
+
+Tests verify user-client routing, explicit backend OAuth arguments, distinct routes, no write factory on read paths, ownership, rejection, single approved invocation, replay, model-visible boundaries and optional policy configuration. They do not prove live OAuth issuance, employee UC denial, upstream ACLs, Gateway `ASK`, deployment or Workspace connectivity.
+
+## Other runtime resources
+
+Lakebase sessions and approvals remain app infrastructure, with employee-scoped records and consented preferences; they are not replaced with demo task SQLite. Use deliberately selected database/schema grants and separate migration/bootstrap permissions. MLflow trace data contains employee context; restrict experiment/UC trace access and retention. The background Workflow uses its explicitly configured job principal and requires its own model/evaluation permissions. None of these resources is provisioned or live-validated by local tests.

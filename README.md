@@ -8,25 +8,29 @@ The handwritten FastAPI demo and hard-coded store metrics have been removed. The
 
 ```mermaid
 flowchart TD
-    Employee --> UI[Official Databricks chat UI + task review]
-    UI --> Runtime[MLflow Responses API / LongRunningAgentServer]
-    Runtime --> Supervisor[OpenAI Agents SDK Store Operations supervisor]
-    Supervisor --> Genie[Genie One specialist / native Genie Space MCP]
-    Supervisor --> Time[StoreTime specialist / governed MCP]
-    Supervisor --> Lookup[OpsTask lookup specialist / governed MCP]
-    Supervisor --> Context[Confluence specialist / governed MCP]
-    Time --> TimeApp[StoreTime MCP App / synthetic schedules]
-    Lookup --> TaskApp[OpsTask MCP App / synthetic tasks]
-    Context --> ContextApp[Confluence MCP App / verbatim synthetic corpus]
-    Supervisor --> Proposal[Save reviewed task proposal]
-    Employee --> Decision[Explicit approval or rejection]
-    Decision --> Writer[Separate OpsTask writer / no model access]
-    Writer --> TaskApp
-    Runtime --> Session[AsyncDatabricksSession / Lakebase]
-    Runtime --> LongTerm[Consented employee preferences / Lakebase]
-    Runtime --> Jobs[Databricks Workflows submission and status]
-    Runtime --> MLflow[UC-backed traces and evaluations]
+    Employee --> UI[Databricks App / official Chat UI]
+    UI --> Agent[Store Operations Agent / LongRunningAgentServer + OpenAI SDK]
+    Agent --> User[Verified employee / user authorization + OBO]
+    User --> ReadGateway[Unity Gateway / UC read authorization]
+    ReadGateway --> Genie[Genie One MCP]
+    ReadGateway --> StoreTime[StoreTime read MCP]
+    ReadGateway --> OpsRead[OpsTask read MCP]
+    ReadGateway --> Confluence[Confluence MCP]
+    Agent --> Proposal[Pending immutable proposal / Lakebase]
+    Employee --> Approve[Explicit human approval]
+    Proposal --> Handler[Trusted approval handler]
+    Approve --> Handler
+    Handler --> Backend[App SP or configured backend M2M identity]
+    Backend --> WriteGateway[Unity Gateway / UC write authorization]
+    WriteGateway --> Ask[Optional service policy ASK]
+    Ask --> OpsWrite[Separate OpsTask write MCP]
+    Agent --> Lakebase[Lakebase sessions + consented memory]
+    Agent --> MLflow[MLflow traces + evaluation]
+    Agent --> Workflows[Databricks Workflows]
 ```
+
+Interactive reads retain employee OBO identity. The privileged writer is constructed only after an employee/session-bound approval is claimed, using app or dedicated backend OAuth identity. Production OpsTask read/write services have distinct bindings; the model and browser receive no writer credentials. UC controls who can call a service; application approval controls the particular mutation. Optional Gateway `ASK` adds defense in depth, subject to platform support. See [identity modes, least-privilege grants and scope configuration](docs/GOVERNANCE.md). The default bundle uses the App SP; a dedicated M2M principal requires separate secret bindings and its own grants.
+
 
 | Capability | Contains / allowed | Excluded |
 | --- | --- | --- |
@@ -83,7 +87,7 @@ Copy `.env.example` to an ignored `.env`, or bind values through Databricks Apps
 | `LAKEBASE_ENDPOINT` | `<autoscaling-endpoint-resource-path>`; alias for upstream `LAKEBASE_AUTOSCALING_ENDPOINT` |
 | `GENIE_SPACE_ID` | `<genie-space-id>` |
 | `GENIE_MCP_URL` | Optional `https://<workspace-host>/api/2.0/mcp/genie/<genie-space-id>` |
-| `STORETIME_CONNECTION`, `OPSTASK_CONNECTION`, `CONFLUENCE_CONNECTION` | `<uc-connection-name>` for each external MCP service |
+| `STORETIME_CONNECTION`, `OPSTASK_READ_CONNECTION`, `CONFLUENCE_CONNECTION` | `<uc-connection-name>` for each external MCP service |
 | `STORETIME_MCP_URL`, `OPSTASK_MCP_URL`, `CONFLUENCE_MCP_URL` | Optional full workspace UC gateway route overrides |
 | `STORETIME_READ_TOOLS`, `OPSTASK_READ_TOOLS`, `CONFLUENCE_READ_TOOLS` | Actual audited, comma-separated read-only tool names discovered from deployed MCP schemas |
 | `OPSTASK_CREATE_TOOL` | Actual task mutation tool name, never exposed to the model |
@@ -138,7 +142,7 @@ Environment variables are bindings, **not evidence that a service is connected**
    databricks bundle run store_operations -t dev --profile '<databricks-profile>'
    ```
 
-   Run startup with `uv run start-app` for local authenticated development; `ALLOW_LOCAL_PROFILE_IDENTITY=true` explicitly permits the verified CLI profile identity outside Databricks Apps. Production requests require a forwarded employee token validated against Databricks `/Me`.
+   Run startup with `uv run start-app` for local authenticated development; `USER_AUTHORIZATION_MODE=local_profile` together with `ALLOW_LOCAL_PROFILE_IDENTITY=true` explicitly permits the verified CLI profile identity outside Databricks Apps. Production requests require a forwarded employee token validated against Databricks `/Me`.
 6. Enable Databricks Apps user authorization and required workspace/data scopes. Verify cross-employee/store access, source retrieval, an approval/rejection cycle and the Workflow job before using employee data.
 
 The `dev` and `prod` targets share the same variable contract and differ in DAB deployment mode. Supply different values and principals for each environment; the app source does not change. See `config/prod.env.example`. Do not copy DEV credentials to PROD.
@@ -177,3 +181,11 @@ This executes the actual agent against configured resources and logs trace-linke
 See [OMNIGENT_SETUP.md](OMNIGENT_SETUP.md) for the team-specific harness handoff. No authoritative Omnigent schema was available in the pinned public template, so no fabricated config is claimed as valid. Codex repository guidance is in `AGENTS.md`; a standard VS Code launch configuration supports debugging the actual Agent Server entry point.
 
 Local verification and live verification are distinct. [docs/VALIDATION.md](docs/VALIDATION.md) records the checks and gaps. Actual Databricks deployment, UC/Unity Gateway grants, Lakebase persistence, external MCP schemas and mutations, MLflow workspace export/judges and Workflow execution require a configured workspace and have not been certified by local tests.
+
+## Enterprise writer configuration
+
+Keep `USER_AUTHORIZATION_MODE=obo` in deployed Apps. Supply distinct `OPSTASK_READ_CONNECTION` and `OPSTASK_WRITE_CONNECTION`, optional distinct read/write URL overrides, and `OPSTASK_WRITE_OAUTH_SCOPES` selected for the supported endpoint. `OPSTASK_WRITE_AUTH_MODE=app` uses the App's injected OAuth credentials; `m2m` uses backend-only `OPSTASK_WRITE_CLIENT_ID` and secret-bound `OPSTASK_WRITE_CLIENT_SECRET`. The writer never reuses the employee client. DEV and PROD examples use the same variable names with separately supplied values.
+
+Mode A uses `OPSTASK_APPROVAL_MODE=application`. Mode B uses `application_and_gateway_ask` plus `OPSTASK_GATEWAY_POLICY_ID`, after an administrator attaches a supported policy. These variables do not create a policy or grant access. No live Gateway challenge/resume interaction is certified by local tests.
+
+The reconstruction checkpoint and its evidence remain under `docs/validation/reconstruction/`. Post-refactor validation uses a separate directory so that history is preserved. Both runs use test-only model/Genie/identity/memory fixtures around real local MCP traffic; neither proves live Databricks integration.

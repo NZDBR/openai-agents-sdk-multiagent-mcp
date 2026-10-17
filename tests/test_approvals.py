@@ -23,6 +23,7 @@ def writer(monkeypatch):
             calls.append((name, args))
             return CallToolResult(content=[], structuredContent={'task_id':'OPS-TEST'})
     monkeypatch.setattr(actions, 'McpServer', Writer)
+    monkeypatch.setattr(actions, 'app_write_mcp_client', lambda *args, **kwargs: Writer())
     return calls
 
 
@@ -33,7 +34,7 @@ def test_explicit_approval_and_replay(settings, writer):
         assert writer == []
         client = SimpleNamespace(config=SimpleNamespace(host='https://workspace.example'))
         for _ in range(2):
-            result = await actions.decide_task(store, settings, client, 'employee', 'session', proposal['approval_id'], True)
+            result = await actions.decide_task(store, settings, 'employee', 'session', proposal['approval_id'], True)
             assert result['status'] == 'created'
         assert len(writer) == 1
         assert writer[0][1]['idempotency_key'] == proposal['approval_id']
@@ -46,9 +47,9 @@ def test_rejection_and_cross_employee_denial(settings, writer):
         proposal = await store.propose('employee', 'session', task())
         client = SimpleNamespace(config=SimpleNamespace(host='https://workspace.example'))
         with pytest.raises(PermissionError):
-            await actions.decide_task(store, settings, client, 'other', 'session', proposal['approval_id'], True)
-        await actions.decide_task(store, settings, client, 'employee', 'session', proposal['approval_id'], False)
-        result = await actions.decide_task(store, settings, client, 'employee', 'session', proposal['approval_id'], True)
+            await actions.decide_task(store, settings, 'other', 'session', proposal['approval_id'], True)
+        await actions.decide_task(store, settings, 'employee', 'session', proposal['approval_id'], False)
+        result = await actions.decide_task(store, settings, 'employee', 'session', proposal['approval_id'], True)
         assert result['status'] == 'rejected'
         assert writer == []
     asyncio.run(run())
@@ -62,8 +63,8 @@ def test_ambiguous_write_is_not_retried(settings, writer, monkeypatch):
         proposal = await store.propose('employee', 'session', task())
         client = SimpleNamespace(config=SimpleNamespace(host='https://workspace.example'))
         with pytest.raises(RuntimeError, match='reconciliation'):
-            await actions.decide_task(store, settings, client, 'employee', 'session', proposal['approval_id'], True)
-        result = await actions.decide_task(store, settings, client, 'employee', 'session', proposal['approval_id'], True)
+            await actions.decide_task(store, settings, 'employee', 'session', proposal['approval_id'], True)
+        result = await actions.decide_task(store, settings, 'employee', 'session', proposal['approval_id'], True)
         assert result['status'] == 'needs_reconciliation'
     asyncio.run(run())
 
@@ -71,4 +72,4 @@ def test_ambiguous_write_is_not_retried(settings, writer, monkeypatch):
 @pytest.mark.parametrize('value', [None, 'true', 1])
 def test_decision_requires_boolean(settings, value):
     with pytest.raises(ValueError):
-        asyncio.run(actions.decide_task(FakeStore(), settings, None, 'user', 'session', 'id', value))
+        asyncio.run(actions.decide_task(FakeStore(), settings, 'user', 'session', 'id', value))

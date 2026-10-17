@@ -1,4 +1,4 @@
-# Modified official Databricks Apps bundle scaffold; all resource identities are variables.
+# Parameterized official-template bundle; authorization must be verified in the target workspace.
 bundle:
   name: store_operations_agent
 variables:
@@ -24,8 +24,6 @@ variables:
     description: Warehouse used for UC traces
   storetime_connection:
     description: UC connection for StoreTime MCP
-  opstask_connection:
-    description: UC connection for OpsTask MCP
   confluence_connection:
     description: UC connection for Confluence MCP
   storetime_read_tools:
@@ -65,6 +63,27 @@ variables:
     description: Optional workspace-governed MCP URL override
   job_service_principal:
     description: Service principal client ID used to execute background evaluations
+  opstask_read_connection:
+    description: Employee/OBO read-only OpsTask UC connection
+  opstask_write_connection:
+    description: Distinct OpsTask write UC connection, backend identity only
+  opstask_write_mcp_url:
+    description: Optional distinct workspace-governed write route override
+    default: ''
+  opstask_write_auth_mode:
+    description: Backend app identity or explicitly configured m2m identity
+    default: app
+  opstask_write_oauth_scopes:
+    description: Comma-separated supported backend MCP OAuth scopes, selected for
+      the workspace
+  opstask_approval_mode:
+    description: application or application_and_gateway_ask; does not attach a platform
+      policy
+    default: application
+  opstask_gateway_policy_id:
+    description: Operator-managed optional write-service policy identifier; metadata,
+      not proof of enforcement
+    default: ''
 workspace:
   host: ${var.workspace_host}
 artifacts:
@@ -76,8 +95,8 @@ resources:
   apps:
     store_operations:
       name: ${var.app_name}
-      description: Governed Store Operations Agent · official Databricks OpenAI SDK
-        scaffold
+      description: "Governed Store Operations Agent \xB7 official Databricks OpenAI\
+        \ SDK scaffold"
       source_code_path: ./
       config:
         command:
@@ -121,8 +140,8 @@ resources:
           value: ${var.storetime_connection}
         - name: STORETIME_READ_TOOLS
           value: ${var.storetime_read_tools}
-        - name: OPSTASK_CONNECTION
-          value: ${var.opstask_connection}
+        - name: OPSTASK_READ_CONNECTION
+          value: ${var.opstask_read_connection}
         - name: OPSTASK_READ_TOOLS
           value: ${var.opstask_read_tools}
         - name: CONFLUENCE_CONNECTION
@@ -137,6 +156,20 @@ resources:
           value: ${var.opstask_mcp_url}
         - name: CONFLUENCE_MCP_URL
           value: ${var.confluence_mcp_url}
+        - name: USER_AUTHORIZATION_MODE
+          value: obo
+        - name: OPSTASK_WRITE_CONNECTION
+          value: ${var.opstask_write_connection}
+        - name: OPSTASK_WRITE_MCP_URL
+          value: ${var.opstask_write_mcp_url}
+        - name: OPSTASK_WRITE_AUTH_MODE
+          value: ${var.opstask_write_auth_mode}
+        - name: OPSTASK_WRITE_OAUTH_SCOPES
+          value: ${var.opstask_write_oauth_scopes}
+        - name: OPSTASK_APPROVAL_MODE
+          value: ${var.opstask_approval_mode}
+        - name: OPSTASK_GATEWAY_POLICY_ID
+          value: ${var.opstask_gateway_policy_id}
       resources:
       - name: experiment
         experiment:
@@ -165,14 +198,19 @@ resources:
           securable_full_name: ${var.storetime_connection}
           securable_type: CONNECTION
           permission: USE_CONNECTION
-      - name: opstask-mcp
+      - name: opstask-read-mcp
         uc_securable:
-          securable_full_name: ${var.opstask_connection}
+          securable_full_name: ${var.opstask_read_connection}
           securable_type: CONNECTION
           permission: USE_CONNECTION
       - name: confluence-mcp
         uc_securable:
           securable_full_name: ${var.confluence_connection}
+          securable_type: CONNECTION
+          permission: USE_CONNECTION
+      - name: opstask-write-mcp
+        uc_securable:
+          securable_full_name: ${var.opstask_write_connection}
           securable_type: CONNECTION
           permission: USE_CONNECTION
   jobs:
@@ -194,12 +232,12 @@ resources:
               "${var.opstask_create_tool}", "OPSTASK_ARGUMENT_MAP": "${var.opstask_argument_map}",
               "OPSTASK_RESULT_ID_FIELD": "${var.opstask_result_id_field}", "STORETIME_CONNECTION":
               "${var.storetime_connection}", "STORETIME_READ_TOOLS": "${var.storetime_read_tools}",
-              "OPSTASK_CONNECTION": "${var.opstask_connection}", "OPSTASK_READ_TOOLS":
-              "${var.opstask_read_tools}", "CONFLUENCE_CONNECTION": "${var.confluence_connection}",
-              "CONFLUENCE_READ_TOOLS": "${var.confluence_read_tools}", "GENIE_MCP_URL":
-              "${var.genie_mcp_url}", "STORETIME_MCP_URL": "${var.storetime_mcp_url}",
+              "OPSTASK_READ_TOOLS": "${var.opstask_read_tools}", "CONFLUENCE_CONNECTION":
+              "${var.confluence_connection}", "CONFLUENCE_READ_TOOLS": "${var.confluence_read_tools}",
+              "GENIE_MCP_URL": "${var.genie_mcp_url}", "STORETIME_MCP_URL": "${var.storetime_mcp_url}",
               "OPSTASK_MCP_URL": "${var.opstask_mcp_url}", "CONFLUENCE_MCP_URL": "${var.confluence_mcp_url}",
-              "BACKGROUND_JOB_ID": "0", "ALLOW_LOCAL_PROFILE_IDENTITY": "true"}'
+              "BACKGROUND_JOB_ID": "0", "ALLOW_LOCAL_PROFILE_IDENTITY": "true", "OPSTASK_READ_CONNECTION":
+              "${var.opstask_read_connection}", "USER_AUTHORIZATION_MODE": "local_profile"}'
             judge_model: databricks:/${var.judge_model}
         libraries:
         - whl: ./dist/*.whl

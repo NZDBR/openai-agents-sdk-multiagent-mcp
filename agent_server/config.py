@@ -1,6 +1,6 @@
 """Validated resource bindings, not a demo fallback."""
 import os
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from dataclasses import dataclass
 from urllib.parse import quote
 
@@ -10,7 +10,7 @@ class Settings:
     model: str
     genie_space: str
     storetime_connection: str
-    opstask_connection: str
+    opstask_read_connection: str
     confluence_connection: str
     storetime_tools: tuple[str, ...]
     opstask_tools: tuple[str, ...]
@@ -18,6 +18,7 @@ class Settings:
     task_tool: str
     lakebase_endpoint: str
     workflow_job: int
+    opstask_write_connection: str = ''
 
     @classmethod
     def load(cls):
@@ -34,7 +35,8 @@ class Settings:
         return cls(
             model=required('MODEL_ENDPOINT'), genie_space=required('GENIE_SPACE_ID'),
             storetime_connection=os.getenv('STORETIME_CONNECTION', ''),
-            opstask_connection=os.getenv('OPSTASK_CONNECTION', ''),
+            opstask_read_connection=os.getenv('OPSTASK_READ_CONNECTION') or os.getenv('OPSTASK_CONNECTION', ''),
+            opstask_write_connection=os.getenv('OPSTASK_WRITE_CONNECTION', ''),
             confluence_connection=os.getenv('CONFLUENCE_CONNECTION', ''),
             storetime_tools=tools('STORETIME_READ_TOOLS'),
             opstask_tools=tools('OPSTASK_READ_TOOLS'),
@@ -55,7 +57,7 @@ class Settings:
         return {
             'genie': f'/api/2.0/mcp/genie/{quote(self.genie_space, safe="")}',
             'storetime': f'/api/2.0/mcp/external/{quote(self.storetime_connection, safe="")}',
-            'opstask': f'/api/2.0/mcp/external/{quote(self.opstask_connection, safe="")}',
+            'opstask': f'/api/2.0/mcp/external/{quote(self.opstask_read_connection, safe="")}',
             'confluence': f'/api/2.0/mcp/external/{quote(self.confluence_connection, safe="")}',
         }
 
@@ -65,7 +67,7 @@ class Settings:
         urls = {}
         variables = {'genie': 'GENIE_MCP_URL', 'storetime': 'STORETIME_MCP_URL', 'opstask': 'OPSTASK_MCP_URL', 'confluence': 'CONFLUENCE_MCP_URL'}
         for capability, path in paths.items():
-            override = os.getenv(variables[capability])
+            override = (os.getenv('OPSTASK_READ_MCP_URL') or os.getenv('OPSTASK_MCP_URL')) if capability == 'opstask' else os.getenv(variables[capability])
             if capability != 'genie' and self.connection_mode != 'databricks':
                 parsed = urlparse(override or '')
                 if parsed.path != '/mcp' or parsed.username or parsed.password or parsed.query or parsed.fragment:
@@ -91,3 +93,41 @@ class Settings:
                 raise ValueError(f'{capability} must use its governed MCP route')
             urls[capability] = url
         return urls
+
+
+    def write_mcp_url(self, host):
+        """A dedicated production write binding; never fall back to the read route."""
+        if self.connection_mode != 'databricks':
+            url = os.getenv('DEMO_OPSTASK_WRITE_MCP_URL') or self.mcp_urls(host)['opstask']
+            parsed = urlparse(url)
+            if parsed.path != '/mcp' or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError('Invalid demo write MCP endpoint')
+            if self.connection_mode == 'local_demo':
+                if parsed.scheme != 'http' or parsed.hostname not in {'localhost','127.0.0.1','::1'}:
+                    raise ValueError('Local demo write endpoint requires loopback HTTP')
+            elif parsed.scheme != 'https' or parsed.hostname not in set(os.getenv('DEMO_MCP_ALLOWED_HOSTS','').split(',')) or parsed.port not in {None,443}:
+                raise ValueError('Deployed demo writer requires an exact trusted HTTPS host')
+            return url
+        override = os.getenv('OPSTASK_WRITE_MCP_URL')
+        connection = self.opstask_write_connection
+        if not override and (not connection or '<' in connection):
+            raise ValueError('A distinct OPSTASK_WRITE_CONNECTION or OPSTASK_WRITE_MCP_URL is required')
+        url = override or host.rstrip('/') + '/api/2.0/mcp/external/' + quote(connection, safe='')
+        parsed, workspace = urlparse(url), urlparse(host)
+        prefix = '/api/2.0/mcp/external/'
+        if parsed.scheme != 'https' or parsed.netloc != workspace.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment or not parsed.path.startswith(prefix) or not parsed.path[len(prefix):] or '<' in url:
+            raise ValueError('Write MCP must use the configured workspace governed external route')
+        read = urlparse(self.mcp_urls(host)['opstask'])
+        if unquote(parsed.path).rstrip('/') == unquote(read.path).rstrip('/'):
+            raise ValueError('Production OpsTask read and write services must be distinct')
+        return url
+
+    def approval_policy(self):
+        """Operator configuration only; not proof a Gateway policy is attached."""
+        mode = os.getenv('OPSTASK_APPROVAL_MODE', 'application')
+        if mode not in {'application','application_and_gateway_ask'}:
+            raise ValueError('Unknown OpsTask approval mode')
+        policy = os.getenv('OPSTASK_GATEWAY_POLICY_ID', '')
+        if mode == 'application_and_gateway_ask' and (not policy or '<' in policy):
+            raise ValueError('Mode B requires the operator-selected Gateway policy identifier')
+        return {'mode':mode,'policy_id':policy or None}

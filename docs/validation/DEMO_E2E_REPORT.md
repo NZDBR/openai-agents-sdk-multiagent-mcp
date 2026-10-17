@@ -69,3 +69,7 @@ docs/validation/reconstruction/ (JSON and command evidence)
 ```
 
 StoreTime: five windowed read tools. OpsTask: `list_followups`, `get_task`, separately scoped `create_task`. Confluence: `search_company_context`, `get_policy_document`. Exact signatures and error/idempotency semantics are in CONTRACTS.md and runtime-checked contracts.json.
+
+## Subsequent enterprise identity refactor
+
+This document preserves the reconstruction checkpoint. See the [separate post-refactor report](identity/IDENTITY_VALIDATION.md) for current identity-boundary results and fresh evidence.

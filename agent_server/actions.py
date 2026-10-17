@@ -8,7 +8,7 @@ from datetime import date
 import jsonschema
 from databricks_openai.agents import McpServer
 from pydantic import BaseModel, Field
-from agent_server.connections import write_client
+from agent_server.connections import app_write_mcp_client
 
 
 class TaskProposal(BaseModel):
@@ -18,7 +18,7 @@ class TaskProposal(BaseModel):
     due_date: date
 
 
-async def decide_task(store, settings, user_client, owner, session_id, approval_id, approve):
+async def decide_task(store, settings, owner, session_id, approval_id, approve):
     if type(approve) is not bool:
         raise ValueError('Approval decision must be an explicit boolean')
     claim = await store.claim(owner, session_id, approval_id, approve)
@@ -26,7 +26,7 @@ async def decide_task(store, settings, user_client, owner, session_id, approval_
         return {'status': claim['status'], 'task_id': claim.get('external_id')}
     try:
         # Separate writer is never attached to a model.
-        async with write_client(settings, user_client, databricks_factory=McpServer) as server:
+        async with app_write_mcp_client(settings, databricks_factory=McpServer) as server:
             tools = await server.list_tools()
             tool = next(t for t in tools if t.name == settings.task_tool)
             mapping = json.loads(os.environ.get('OPSTASK_ARGUMENT_MAP', '{"title":"title","store_id":"store_id","assignee":"assignee","due_date":"due_date","idempotency_key":"idempotency_key"}'))

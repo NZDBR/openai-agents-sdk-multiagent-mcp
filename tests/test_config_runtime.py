@@ -46,8 +46,11 @@ def test_dab_targets_permissions_and_resource_substitutions():
     assert app['name'] == '${var.app_name}'
     grants = {r['name']:r for r in app['resources']}
     assert grants['genie-space']['genie_space']['permission'] == 'CAN_RUN'
-    for capability in ['storetime','opstask','confluence']:
+    for capability in ['storetime','confluence']:
         assert grants[capability+'-mcp']['uc_securable']['permission'] == 'USE_CONNECTION'
+    for name in ['opstask-read-mcp','opstask-write-mcp']:
+        assert grants[name]['uc_securable']['permission'] == 'USE_CONNECTION'
+    assert grants['opstask-read-mcp']['uc_securable']['securable_full_name'] != grants['opstask-write-mcp']['uc_securable']['securable_full_name']
     assert grants['background-job']['job']['permission'] == 'CAN_MANAGE_RUN'
     assert bundle['resources']['jobs']['store_operations_background']['tasks'][0]['notebook_task']
 

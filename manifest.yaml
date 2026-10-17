@@ -1,4 +1,4 @@
-# Modified official Databricks Apps manifest; bind real resources at deployment.
+# Official-template resource shapes; app-identity deployment example.
 version: 1
 name: Store Operations Agent
 description: Official-template Store Operations agent with governed MCP, Lakebase
@@ -26,8 +26,8 @@ resource_specs:
   uc_securable_spec:
     securable_type: CONNECTION
     permission: USE_CONNECTION
-- name: opstask-mcp
-  description: opstask governed UC connection
+- name: opstask-read-mcp
+  description: Employee/OBO OpsTask lookup UC connection
   uc_securable_spec:
     securable_type: CONNECTION
     permission: USE_CONNECTION
@@ -40,3 +40,9 @@ resource_specs:
   description: Fixed background evaluation Workflow
   job_spec:
     permission: CAN_MANAGE_RUN
+- name: opstask-write-mcp
+  description: Backend-only OpsTask mutation UC connection; never grant employees
+    access
+  uc_securable_spec:
+    securable_type: CONNECTION
+    permission: USE_CONNECTION

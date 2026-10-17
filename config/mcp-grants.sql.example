@@ -1,0 +1,9 @@
+-- Operator-reviewed template only. Never executed by the application.
+-- Replace generic identifiers, then apply with an authorized governance identity.
+-- Existing/inherited employee grants must also be audited; absence here is not DENY.
+GRANT USE CONNECTION ON CONNECTION `<storetime-read-connection>` TO `<employee-read-group>`;
+GRANT USE CONNECTION ON CONNECTION `<opstask-read-connection>` TO `<employee-read-group>`;
+GRANT USE CONNECTION ON CONNECTION `<confluence-read-connection>` TO `<employee-read-group>`;
+GRANT USE CONNECTION ON CONNECTION `<opstask-write-connection>` TO `<backend-writer-principal>`;
+-- Native Genie Space CAN_RUN and underlying data permissions are separate bindings.
+-- No employee write-service grant; no MCP CREATE/MANAGE/ownership grant.

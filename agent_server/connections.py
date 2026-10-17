@@ -1,7 +1,8 @@
-"""Explicit demo transport selection; reconstructed before identity refactor."""
+"""User-scoped reads and isolated backend-only writes; explicit demo simulations."""
 import os
 from agents.mcp import MCPServerStreamableHttp
 from databricks_openai.agents import McpServer
+from agent_server.identity import app_workspace_client
 from agent_server.governance import GovernedMcpServer, LocalDemoMcpServer
 
 def demo_headers(capability,write=False):
@@ -10,24 +11,32 @@ def demo_headers(capability,write=False):
     if len(token)<24: raise ValueError(key+' must be configured (24+ characters)')
     return {'X-Demo-MCP-Token':token}
 
-def read_client(capability,settings,client,evidence):
-    host=client.config.host if client else 'https://unused.invalid'
+def user_mcp_client(capability,settings,user_client,evidence):
+    if user_client is None and (capability == 'genie' or settings.connection_mode != 'local_demo'):
+        raise PermissionError('A verified employee client is required for user-scoped MCP access')
+    host=user_client.config.host if user_client else 'https://unused.invalid'
     url=settings.mcp_urls(host)[capability]
     allow={'genie':(),'storetime':settings.storetime_tools,'opstask':settings.opstask_tools,'confluence':settings.confluence_tools}
     common=dict(capability=capability,allowed=allow[capability],evidence=evidence,name=capability)
     if capability=='genie' or settings.connection_mode=='databricks':
-        return GovernedMcpServer(url=url,workspace_client=client,**common)
+        return GovernedMcpServer(url=url,workspace_client=user_client,**common)
     headers=demo_headers(capability)
     if settings.connection_mode=='local_demo':
         return LocalDemoMcpServer(params={'url':url,'headers':headers},**common)
-    return GovernedMcpServer(url=url,params={'headers':headers},workspace_client=client,**common)
+    return GovernedMcpServer(url=url,params={'headers':headers},workspace_client=user_client,**common)
 
-def write_client(settings,client,databricks_factory=McpServer):
-    url=settings.mcp_urls(client.config.host)['opstask']
-    common=dict(name='Human-approved OpsTask writer',max_retry_attempts=0)
+def app_write_mcp_client(settings, *, databricks_factory=McpServer):
+    """Called only by the trusted application approval handler, never by an agent."""
+    settings.approval_policy()  # Validates operator intent, not actual policy attachment.
+    common=dict(name='Human-approved backend OpsTask writer',max_retry_attempts=0)
     if settings.connection_mode=='databricks':
-        return databricks_factory(url=url,workspace_client=client,**common)
+        # No employee WorkspaceClient is accepted or reused here.
+        backend = app_workspace_client()
+        return databricks_factory(url=settings.write_mcp_url(backend.config.host),workspace_client=backend,**common)
     headers=demo_headers('opstask',write=True)
+    # Both demo roles may use one synthetic server; production bindings must differ.
+    url=settings.write_mcp_url(os.getenv('DATABRICKS_HOST','https://unused.invalid'))
     if settings.connection_mode=='local_demo':
         return MCPServerStreamableHttp(params={'url':url,'headers':headers},**common)
-    return databricks_factory(url=url,params={'headers':headers},workspace_client=client,**common)
+    backend=app_workspace_client()
+    return databricks_factory(url=url,params={'headers':headers},workspace_client=backend,**common)

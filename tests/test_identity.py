@@ -12,6 +12,7 @@ def test_deployed_runtime_requires_forwarded_user_token(monkeypatch):
 
 
 def test_forwarded_identity_is_verified_not_taken_from_context(monkeypatch):
+    monkeypatch.setenv('DATABRICKS_HOST','https://workspace.example')
     clients = []
     def client(**kwargs):
         clients.append(kwargs)

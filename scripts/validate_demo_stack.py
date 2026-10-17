@@ -14,7 +14,7 @@ import httpx
 import jsonschema
 from agents.mcp import MCPServerStreamableHttp
 from agent_server.config import Settings
-from agent_server.connections import read_client
+from agent_server.connections import user_mcp_client
 from agent_server.governance import Evidence
 READ_TOOLS={
  'storetime':{'get_schedules','get_training_blocks','get_training_hours','get_coverage_reasons','diagnose_training_gap'},
@@ -64,7 +64,7 @@ class DemoStack:
         self.tmp.cleanup()
     @contextlib.contextmanager
     def agent_environment(self):
-        updates={'MCP_CONNECTION_MODE':'local_demo','GENIE_MCP_URL':''}
+        updates={'MCP_CONNECTION_MODE':'local_demo','GENIE_MCP_URL':'','OPSTASK_READ_MCP_URL':'','DEMO_OPSTASK_WRITE_MCP_URL':'','OPSTASK_APPROVAL_MODE':'application'}
         for cap in READ_TOOLS:
             updates[cap.upper()+'_MCP_URL']=self.urls[cap]
             updates['DEMO_'+cap.upper()+'_READ_TOKEN']=self.tokens[cap]['read']
@@ -78,7 +78,7 @@ class DemoStack:
 
 def demo_settings():
     return Settings(model='test-only',genie_space='test-only',lakebase_endpoint='test-only',workflow_job=0,
-      storetime_connection='',opstask_connection='',confluence_connection='',task_tool='create_task',
+      storetime_connection='',opstask_read_connection='',confluence_connection='',task_tool='create_task',
       storetime_tools=tuple(sorted(READ_TOOLS['storetime'])),opstask_tools=tuple(sorted(READ_TOOLS['opstask'])),confluence_tools=tuple(sorted(READ_TOOLS['confluence'])))
 def client(stack,cap,write=False):
     return MCPServerStreamableHttp(name='validate-'+cap,params={'url':stack.urls[cap],
@@ -106,7 +106,7 @@ async def verify(stack):
                     denied=await raw.call_tool('create_task',dict(title='Forbidden read probe',store_id='DEMO-001',assignee='DEMO-MANAGER',due_date='2030-01-15',idempotency_key='forbidden-read'))
                     assert denied.isError
                     report[cap]['read_mutation_denial']=denied.model_dump(mode='json')
-            async with read_client(cap,demo_settings(),None,evidence) as reader:
+            async with user_mcp_client(cap,demo_settings(),None,evidence) as reader:
                 tools=await reader.list_tools();assert {t.name for t in tools}==names
                 for tool in tools:
                     result=await reader.call_tool(tool.name,ARGUMENTS[tool.name]);assert not result.isError

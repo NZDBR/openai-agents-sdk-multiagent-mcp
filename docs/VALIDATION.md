@@ -46,3 +46,7 @@ The application-owned diff passes whitespace checks. The unmodified vendored off
 ## Controlled reconstruction validation
 
 The lost uncommitted MCP layer was functionally reconstructed, not recovered. See [the fresh validation report](validation/DEMO_E2E_REPORT.md) and its raw evidence: 51 passed, 2 live tests skipped; frontend and wheel builds passed. These local fixture-backed checks do not establish live workspace integration.
+
+## Enterprise identity refactor validation
+
+Applied after reconstruction commit `8e1e729915dd7c4602dfd1742425b09459ea0796` was pushed. [Post-refactor evidence](validation/identity/IDENTITY_VALIDATION.md): 73 passed, 2 skipped, local demo harness and wheel passed. MCP source/contracts and reconstruction evidence are unchanged. SDK identity construction is tested with fake credentials; actual OBO/M2M, UC denial, Gateway ASK, Lakebase and deployment still require a workspace.

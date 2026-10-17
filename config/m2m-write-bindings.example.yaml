@@ -1,0 +1,21 @@
+# Supported Apps secret-resource shapes for a team-selected DAB overlay.
+# Supply real secret references through target configuration. No secret value here.
+# This fragment is NOT automatically included. Review/remove redundant App-SP
+# write grants from the default app-identity bundle before selecting M2M mode.
+resources:
+  apps:
+    store_operations:
+      config:
+        env:
+          - name: OPSTASK_WRITE_AUTH_MODE
+            value: m2m
+          - name: OPSTASK_WRITE_CLIENT_ID
+            value: <backend-service-principal-client-id>
+          - name: OPSTASK_WRITE_CLIENT_SECRET
+            valueFrom: opstask-backend-client-secret
+      resources:
+        - name: opstask-backend-client-secret
+          secret:
+            scope: <secret-scope>
+            key: <backend-client-secret-key>
+            permission: READ

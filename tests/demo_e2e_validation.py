@@ -41,7 +41,7 @@ class FixtureGenie(McpServer):
 def answer(text,citations=None,policy=False,quotes=None):
     return [message(json.dumps(dict(answer=text,citations=citations or [],is_policy=policy,policy_quotes=quotes or [])))]
 async def invoke(outputs,store,text,conversation='demo-validation',decision=None):
-    model=ScriptedModel(outputs);actual_read=application.read_client
+    model=ScriptedModel(outputs);actual_read=application.user_mcp_client
     def read(cap,settings,user,evidence):
         return FixtureGenie(evidence) if cap=='genie' else actual_read(cap,settings,user,evidence)
     async def employee(): return 'fixture-employee',SimpleNamespace(config=SimpleNamespace(host='https://fixture.invalid'))
@@ -54,7 +54,7 @@ async def invoke(outputs,store,text,conversation='demo-validation',decision=None
         stack.enter_context(patch.object(application.Settings,'load',return_value=replace(demo_settings(),model=model)))
         stack.enter_context(patch.object(application,'employee',employee))
         stack.enter_context(patch.object(application,'store_for',return_value=store))
-        stack.enter_context(patch.object(application,'read_client',read))
+        stack.enter_context(patch.object(application,'user_mcp_client',read))
         result=await application.invoke_handler(ResponsesAgentRequest(input=[{'role':'user','content':text}],
               custom_inputs={'session_id':conversation,**(decision or {})}))
     assert all('create_task' not in names for names in model.seen_tools)
