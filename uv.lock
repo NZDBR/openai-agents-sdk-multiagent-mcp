@@ -20,6 +20,12 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P7D"
 
+[manifest]
+members = [
+    "store-operations-agent",
+    "store-operations-demo-mcp",
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.7.1"
@@ -4371,6 +4377,8 @@ dev = [
     { name = "hatchling" },
     { name = "pytest" },
     { name = "pytest-xdist" },
+    { name = "regex" },
+    { name = "store-operations-demo-mcp" },
 ]
 setup = [
     { name = "ruamel-yaml" },
@@ -4401,8 +4409,29 @@ dev = [
     { name = "hatchling", specifier = ">=1.28.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "regex" },
+    { name = "store-operations-demo-mcp", editable = "mcp-apps" },
 ]
 setup = [{ name = "ruamel-yaml", specifier = ">=0.18.0" }]
+
+[[package]]
+name = "store-operations-demo-mcp"
+version = "0.1.0"
+source = { editable = "mcp-apps" }
+dependencies = [
+    { name = "jsonschema" },
+    { name = "mcp" },
+    { name = "pydantic" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jsonschema", specifier = ">=4.23" },
+    { name = "mcp", specifier = ">=1.30,<2" },
+    { name = "pydantic", specifier = ">=2.12" },
+    { name = "uvicorn", specifier = ">=0.41.0" },
+]
 
 [[package]]
 name = "tabulate"

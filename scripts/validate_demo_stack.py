@@ -24,6 +24,8 @@ ARGUMENTS={name:WINDOW for name in READ_TOOLS['storetime']}
 ARGUMENTS.update(list_followups={'store_id':'DEMO-001'},get_task={'task_id':'DEMO-SEED-001'},
  search_company_context={'query':'protected training'},get_policy_document={'source_id':'DEMO-TRAINING-1'})
 class DemoStack:
+    def __init__(self, artifact_root=None):
+        self.artifact_root=Path(artifact_root).resolve() if artifact_root else None
     def __enter__(self):
         self.tmp=tempfile.TemporaryDirectory(prefix='store-reconstructed-mcp-')
         self.processes=[];self.logs=[];self.urls={};self.tokens={};used=set()
@@ -39,7 +41,9 @@ class DemoStack:
                 env.update(MCP_READ_TOKEN=self.tokens[cap]['read'],MCP_TASK_DB=str(Path(self.tmp.name)/'tasks.db'))
                 if cap=='opstask': env['MCP_WRITE_TOKEN']=self.tokens[cap]['write']
                 log=open(Path(self.tmp.name)/(cap+'.log'),'w+');self.logs.append(log)
-                self.processes.append(subprocess.Popen([sys.executable,'-m',cap+'.server','--host','127.0.0.1','--port',str(port)],env=env,stdout=log,stderr=subprocess.STDOUT))
+                executable=str(self.artifact_root/cap/'.venv/bin/python') if self.artifact_root else sys.executable
+                directory=self.artifact_root/cap if self.artifact_root else None
+                self.processes.append(subprocess.Popen([executable,'-m',cap+'.server','--host','127.0.0.1','--port',str(port)],cwd=directory,env=env,stdout=log,stderr=subprocess.STDOUT))
             deadline=time.monotonic()+30
             with httpx.Client(trust_env=False,timeout=1) as http:
                 for cap,process,log in zip(READ_TOOLS,self.processes,self.logs):
@@ -122,6 +126,9 @@ async def verify(stack):
 def main():
     import mlflow
     mlflow.tracing.disable()
-    with DemoStack() as stack: result=asyncio.run(verify(stack))
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--artifact-root',help='Validate installed staged artifacts instead of checkout packages')
+    with DemoStack(parser.parse_args().artifact_root) as stack: result=asyncio.run(verify(stack))
     print(json.dumps(result,indent=2))
 if __name__=='__main__': main()

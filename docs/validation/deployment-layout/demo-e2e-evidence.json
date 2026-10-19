@@ -1,0 +1,2805 @@
+{
+  "reconstruction": true,
+  "recorded_at": "2026-10-19T23:16:21.017704+00:00",
+  "scope": {
+    "real": [
+      "local MCP HTTP processes",
+      "SDK orchestration",
+      "Responses/approval handlers",
+      "demo SQLite task storage"
+    ],
+    "fixtures": [
+      "Genie metrics transport",
+      "scripted model",
+      "employee identity",
+      "FakeStore session/approval memory"
+    ],
+    "live_databricks_verified": false
+  },
+  "protocol": {
+    "services": {
+      "storetime": {
+        "checks": {
+          "/health": {
+            "status_code": 200,
+            "body": {
+              "status": "alive",
+              "service": "storetime",
+              "mode": "demo"
+            }
+          },
+          "/ready": {
+            "status_code": 200,
+            "body": {
+              "status": "ready",
+              "service": "storetime",
+              "mode": "demo"
+            }
+          }
+        },
+        "initialize": {
+          "meta": null,
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "experimental": {},
+            "logging": null,
+            "prompts": {
+              "listChanged": false
+            },
+            "resources": {
+              "subscribe": false,
+              "listChanged": false
+            },
+            "tools": {
+              "listChanged": false
+            },
+            "completions": null,
+            "tasks": null
+          },
+          "serverInfo": {
+            "name": "storetime",
+            "title": null,
+            "version": "1.30.0",
+            "websiteUrl": null,
+            "icons": null
+          },
+          "instructions": null
+        },
+        "runtime_tools": [
+          {
+            "name": "get_schedules",
+            "description": "Look up synthetic employee schedules, read only.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "start_date": {
+                  "format": "date",
+                  "title": "Start Date",
+                  "type": "string"
+                },
+                "end_date": {
+                  "format": "date",
+                  "title": "End Date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "store_id",
+                "start_date",
+                "end_date"
+              ],
+              "title": "get_schedulesArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Schedule": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "schedule_id": {
+                      "title": "Schedule Id",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "employee_id": {
+                      "title": "Employee Id",
+                      "type": "string"
+                    },
+                    "date": {
+                      "format": "date",
+                      "title": "Date",
+                      "type": "string"
+                    },
+                    "scheduled_hours": {
+                      "minimum": 0,
+                      "title": "Scheduled Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "schedule_id",
+                    "store_id",
+                    "employee_id",
+                    "date",
+                    "scheduled_hours"
+                  ],
+                  "title": "Schedule",
+                  "type": "object"
+                },
+                "Schedules": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "schedules": {
+                      "items": {
+                        "$ref": "#/$defs/Schedule"
+                      },
+                      "title": "Schedules",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "schedules"
+                  ],
+                  "title": "Schedules",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Schedules"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Schedules]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_training_blocks",
+            "description": "Look up protected synthetic training blocks.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "start_date": {
+                  "format": "date",
+                  "title": "Start Date",
+                  "type": "string"
+                },
+                "end_date": {
+                  "format": "date",
+                  "title": "End Date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "store_id",
+                "start_date",
+                "end_date"
+              ],
+              "title": "get_training_blocksArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Blocks": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "blocks": {
+                      "items": {
+                        "$ref": "#/$defs/TrainingBlock"
+                      },
+                      "title": "Blocks",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "blocks"
+                  ],
+                  "title": "Blocks",
+                  "type": "object"
+                },
+                "TrainingBlock": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "block_id": {
+                      "title": "Block Id",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "employee_id": {
+                      "title": "Employee Id",
+                      "type": "string"
+                    },
+                    "date": {
+                      "format": "date",
+                      "title": "Date",
+                      "type": "string"
+                    },
+                    "protected": {
+                      "title": "Protected",
+                      "type": "boolean"
+                    },
+                    "scheduled_hours": {
+                      "minimum": 0,
+                      "title": "Scheduled Hours",
+                      "type": "number"
+                    },
+                    "completed_hours": {
+                      "minimum": 0,
+                      "title": "Completed Hours",
+                      "type": "number"
+                    },
+                    "converted_hours": {
+                      "minimum": 0,
+                      "title": "Converted Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "block_id",
+                    "store_id",
+                    "employee_id",
+                    "date",
+                    "protected",
+                    "scheduled_hours",
+                    "completed_hours",
+                    "converted_hours"
+                  ],
+                  "title": "TrainingBlock",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Blocks"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Blocks]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_training_hours",
+            "description": "Read scheduled, protected, completed and converted training hours.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "start_date": {
+                  "format": "date",
+                  "title": "Start Date",
+                  "type": "string"
+                },
+                "end_date": {
+                  "format": "date",
+                  "title": "End Date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "store_id",
+                "start_date",
+                "end_date"
+              ],
+              "title": "get_training_hoursArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Hours": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hours": {
+                      "$ref": "#/$defs/TrainingHours"
+                    }
+                  },
+                  "required": [
+                    "hours"
+                  ],
+                  "title": "Hours",
+                  "type": "object"
+                },
+                "TrainingHours": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "start_date": {
+                      "format": "date",
+                      "title": "Start Date",
+                      "type": "string"
+                    },
+                    "end_date": {
+                      "format": "date",
+                      "title": "End Date",
+                      "type": "string"
+                    },
+                    "scheduled_hours": {
+                      "title": "Scheduled Hours",
+                      "type": "number"
+                    },
+                    "protected_hours": {
+                      "title": "Protected Hours",
+                      "type": "number"
+                    },
+                    "completed_hours": {
+                      "title": "Completed Hours",
+                      "type": "number"
+                    },
+                    "converted_hours": {
+                      "title": "Converted Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "store_id",
+                    "start_date",
+                    "end_date",
+                    "scheduled_hours",
+                    "protected_hours",
+                    "completed_hours",
+                    "converted_hours"
+                  ],
+                  "title": "TrainingHours",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Hours"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Hours]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_coverage_reasons",
+            "description": "Read recorded synthetic coverage reasons.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "start_date": {
+                  "format": "date",
+                  "title": "Start Date",
+                  "type": "string"
+                },
+                "end_date": {
+                  "format": "date",
+                  "title": "End Date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "store_id",
+                "start_date",
+                "end_date"
+              ],
+              "title": "get_coverage_reasonsArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "CoverageReason": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason_id": {
+                      "title": "Reason Id",
+                      "type": "string"
+                    },
+                    "block_id": {
+                      "title": "Block Id",
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "title": "Reason Code",
+                      "type": "string"
+                    },
+                    "description": {
+                      "title": "Description",
+                      "type": "string"
+                    },
+                    "converted_hours": {
+                      "minimum": 0,
+                      "title": "Converted Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "reason_id",
+                    "block_id",
+                    "reason_code",
+                    "description",
+                    "converted_hours"
+                  ],
+                  "title": "CoverageReason",
+                  "type": "object"
+                },
+                "Reasons": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reasons": {
+                      "items": {
+                        "$ref": "#/$defs/CoverageReason"
+                      },
+                      "title": "Reasons",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reasons"
+                  ],
+                  "title": "Reasons",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Reasons"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Reasons]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "diagnose_training_gap",
+            "description": "Diagnose recorded training gaps without changing schedules or creating tasks.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "start_date": {
+                  "format": "date",
+                  "title": "Start Date",
+                  "type": "string"
+                },
+                "end_date": {
+                  "format": "date",
+                  "title": "End Date",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "store_id",
+                "start_date",
+                "end_date"
+              ],
+              "title": "diagnose_training_gapArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "CoverageReason": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason_id": {
+                      "title": "Reason Id",
+                      "type": "string"
+                    },
+                    "block_id": {
+                      "title": "Block Id",
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "title": "Reason Code",
+                      "type": "string"
+                    },
+                    "description": {
+                      "title": "Description",
+                      "type": "string"
+                    },
+                    "converted_hours": {
+                      "minimum": 0,
+                      "title": "Converted Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "reason_id",
+                    "block_id",
+                    "reason_code",
+                    "description",
+                    "converted_hours"
+                  ],
+                  "title": "CoverageReason",
+                  "type": "object"
+                },
+                "Diagnosis": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "diagnostic": {
+                      "$ref": "#/$defs/Diagnostic"
+                    }
+                  },
+                  "required": [
+                    "diagnostic"
+                  ],
+                  "title": "Diagnosis",
+                  "type": "object"
+                },
+                "Diagnostic": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hours": {
+                      "$ref": "#/$defs/TrainingHours"
+                    },
+                    "completion_gap_hours": {
+                      "title": "Completion Gap Hours",
+                      "type": "number"
+                    },
+                    "coverage_reasons": {
+                      "items": {
+                        "$ref": "#/$defs/CoverageReason"
+                      },
+                      "title": "Coverage Reasons",
+                      "type": "array"
+                    },
+                    "evidence_block_ids": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Evidence Block Ids",
+                      "type": "array"
+                    },
+                    "limitations": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Limitations",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "hours",
+                    "completion_gap_hours",
+                    "coverage_reasons",
+                    "evidence_block_ids",
+                    "limitations"
+                  ],
+                  "title": "Diagnostic",
+                  "type": "object"
+                },
+                "TrainingHours": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "start_date": {
+                      "format": "date",
+                      "title": "Start Date",
+                      "type": "string"
+                    },
+                    "end_date": {
+                      "format": "date",
+                      "title": "End Date",
+                      "type": "string"
+                    },
+                    "scheduled_hours": {
+                      "title": "Scheduled Hours",
+                      "type": "number"
+                    },
+                    "protected_hours": {
+                      "title": "Protected Hours",
+                      "type": "number"
+                    },
+                    "completed_hours": {
+                      "title": "Completed Hours",
+                      "type": "number"
+                    },
+                    "converted_hours": {
+                      "title": "Converted Hours",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "store_id",
+                    "start_date",
+                    "end_date",
+                    "scheduled_hours",
+                    "protected_hours",
+                    "completed_hours",
+                    "converted_hours"
+                  ],
+                  "title": "TrainingHours",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Diagnosis"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Diagnosis]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          }
+        ],
+        "matches_contract": true
+      },
+      "opstask": {
+        "checks": {
+          "/health": {
+            "status_code": 200,
+            "body": {
+              "status": "alive",
+              "service": "opstask",
+              "mode": "demo"
+            }
+          },
+          "/ready": {
+            "status_code": 200,
+            "body": {
+              "status": "ready",
+              "service": "opstask",
+              "mode": "demo"
+            }
+          }
+        },
+        "initialize": {
+          "meta": null,
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "experimental": {},
+            "logging": null,
+            "prompts": {
+              "listChanged": false
+            },
+            "resources": {
+              "subscribe": false,
+              "listChanged": false
+            },
+            "tools": {
+              "listChanged": false
+            },
+            "completions": null,
+            "tasks": null
+          },
+          "serverInfo": {
+            "name": "opstask",
+            "title": null,
+            "version": "1.30.0",
+            "websiteUrl": null,
+            "icons": null
+          },
+          "instructions": null
+        },
+        "runtime_tools": [
+          {
+            "name": "list_followups",
+            "description": "List synthetic tasks; no diagnosis or mutation.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "status": {
+                  "default": "all",
+                  "enum": [
+                    "all",
+                    "open",
+                    "in_progress",
+                    "completed"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "limit": {
+                  "default": 50,
+                  "maximum": 100,
+                  "minimum": 1,
+                  "title": "Limit",
+                  "type": "integer"
+                },
+                "cursor": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Cursor"
+                }
+              },
+              "required": [
+                "store_id"
+              ],
+              "title": "list_followupsArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "assignee": {
+                      "title": "Assignee",
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "format": "date",
+                      "title": "Due Date",
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "open",
+                      "enum": [
+                        "open",
+                        "in_progress",
+                        "completed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "task_id",
+                    "title",
+                    "store_id",
+                    "assignee",
+                    "due_date"
+                  ],
+                  "title": "Task",
+                  "type": "object"
+                },
+                "Tasks": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "tasks": {
+                      "items": {
+                        "$ref": "#/$defs/Task"
+                      },
+                      "title": "Tasks",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "tasks"
+                  ],
+                  "title": "Tasks",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Tasks"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Tasks]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_task",
+            "description": "Look up one synthetic task.",
+            "inputSchema": {
+              "properties": {
+                "task_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Task Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "task_id"
+              ],
+              "title": "get_taskArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "assignee": {
+                      "title": "Assignee",
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "format": "date",
+                      "title": "Due Date",
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "open",
+                      "enum": [
+                        "open",
+                        "in_progress",
+                        "completed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "task_id",
+                    "title",
+                    "store_id",
+                    "assignee",
+                    "due_date"
+                  ],
+                  "title": "Task",
+                  "type": "object"
+                },
+                "TaskItem": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task": {
+                      "$ref": "#/$defs/Task"
+                    }
+                  },
+                  "required": [
+                    "task"
+                  ],
+                  "title": "TaskItem",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/TaskItem"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[TaskItem]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          }
+        ],
+        "matches_contract": true,
+        "read_mutation_denial": {
+          "meta": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "A separately authorized human-approved writer is required",
+              "annotations": null,
+              "meta": null
+            }
+          ],
+          "structuredContent": null,
+          "isError": true
+        }
+      },
+      "confluence": {
+        "checks": {
+          "/health": {
+            "status_code": 200,
+            "body": {
+              "status": "alive",
+              "service": "confluence",
+              "mode": "demo"
+            }
+          },
+          "/ready": {
+            "status_code": 200,
+            "body": {
+              "status": "ready",
+              "service": "confluence",
+              "mode": "demo"
+            }
+          }
+        },
+        "initialize": {
+          "meta": null,
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "experimental": {},
+            "logging": null,
+            "prompts": {
+              "listChanged": false
+            },
+            "resources": {
+              "subscribe": false,
+              "listChanged": false
+            },
+            "tools": {
+              "listChanged": false
+            },
+            "completions": null,
+            "tasks": null
+          },
+          "serverInfo": {
+            "name": "confluence",
+            "title": null,
+            "version": "1.30.0",
+            "websiteUrl": null,
+            "icons": null
+          },
+          "instructions": null
+        },
+        "runtime_tools": [
+          {
+            "name": "search_company_context",
+            "description": "Search stored synthetic company context and policy verbatim.",
+            "inputSchema": {
+              "properties": {
+                "query": {
+                  "maxLength": 1000,
+                  "minLength": 1,
+                  "title": "Query",
+                  "type": "string"
+                },
+                "limit": {
+                  "default": 5,
+                  "maximum": 20,
+                  "minimum": 1,
+                  "title": "Limit",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "title": "search_company_contextArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Document": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "source_id": {
+                      "title": "Source Id",
+                      "type": "string"
+                    },
+                    "document_id": {
+                      "title": "Document Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "source_url": {
+                      "title": "Source Url",
+                      "type": "string"
+                    },
+                    "section": {
+                      "title": "Section",
+                      "type": "string"
+                    },
+                    "text": {
+                      "title": "Text",
+                      "type": "string"
+                    },
+                    "synthetic": {
+                      "const": true,
+                      "default": true,
+                      "title": "Synthetic",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "source_id",
+                    "document_id",
+                    "title",
+                    "source_url",
+                    "section",
+                    "text"
+                  ],
+                  "title": "Document",
+                  "type": "object"
+                },
+                "Documents": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "documents": {
+                      "items": {
+                        "$ref": "#/$defs/Document"
+                      },
+                      "title": "Documents",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "documents"
+                  ],
+                  "title": "Documents",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Documents"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Documents]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_policy_document",
+            "description": "Retrieve one stored synthetic policy section with provenance.",
+            "inputSchema": {
+              "properties": {
+                "source_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Source Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_id"
+              ],
+              "title": "get_policy_documentArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Document": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "source_id": {
+                      "title": "Source Id",
+                      "type": "string"
+                    },
+                    "document_id": {
+                      "title": "Document Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "source_url": {
+                      "title": "Source Url",
+                      "type": "string"
+                    },
+                    "section": {
+                      "title": "Section",
+                      "type": "string"
+                    },
+                    "text": {
+                      "title": "Text",
+                      "type": "string"
+                    },
+                    "synthetic": {
+                      "const": true,
+                      "default": true,
+                      "title": "Synthetic",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "source_id",
+                    "document_id",
+                    "title",
+                    "source_url",
+                    "section",
+                    "text"
+                  ],
+                  "title": "Document",
+                  "type": "object"
+                },
+                "DocumentItem": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "document": {
+                      "$ref": "#/$defs/Document"
+                    }
+                  },
+                  "required": [
+                    "document"
+                  ],
+                  "title": "DocumentItem",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/DocumentItem"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[DocumentItem]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          }
+        ],
+        "matches_contract": true
+      },
+      "writer": {
+        "runtime_tools": [
+          {
+            "name": "list_followups",
+            "description": "List synthetic tasks; no diagnosis or mutation.",
+            "inputSchema": {
+              "properties": {
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "status": {
+                  "default": "all",
+                  "enum": [
+                    "all",
+                    "open",
+                    "in_progress",
+                    "completed"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "limit": {
+                  "default": 50,
+                  "maximum": 100,
+                  "minimum": 1,
+                  "title": "Limit",
+                  "type": "integer"
+                },
+                "cursor": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Cursor"
+                }
+              },
+              "required": [
+                "store_id"
+              ],
+              "title": "list_followupsArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "assignee": {
+                      "title": "Assignee",
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "format": "date",
+                      "title": "Due Date",
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "open",
+                      "enum": [
+                        "open",
+                        "in_progress",
+                        "completed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "task_id",
+                    "title",
+                    "store_id",
+                    "assignee",
+                    "due_date"
+                  ],
+                  "title": "Task",
+                  "type": "object"
+                },
+                "Tasks": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "tasks": {
+                      "items": {
+                        "$ref": "#/$defs/Task"
+                      },
+                      "title": "Tasks",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "tasks"
+                  ],
+                  "title": "Tasks",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/Tasks"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[Tasks]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "get_task",
+            "description": "Look up one synthetic task.",
+            "inputSchema": {
+              "properties": {
+                "task_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Task Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "task_id"
+              ],
+              "title": "get_taskArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "assignee": {
+                      "title": "Assignee",
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "format": "date",
+                      "title": "Due Date",
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "open",
+                      "enum": [
+                        "open",
+                        "in_progress",
+                        "completed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "task_id",
+                    "title",
+                    "store_id",
+                    "assignee",
+                    "due_date"
+                  ],
+                  "title": "Task",
+                  "type": "object"
+                },
+                "TaskItem": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task": {
+                      "$ref": "#/$defs/Task"
+                    }
+                  },
+                  "required": [
+                    "task"
+                  ],
+                  "title": "TaskItem",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/TaskItem"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[TaskItem]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "create_task",
+            "description": "Create an idempotent synthetic task using the separately authorized writer.",
+            "inputSchema": {
+              "properties": {
+                "title": {
+                  "maxLength": 300,
+                  "minLength": 3,
+                  "title": "Title",
+                  "type": "string"
+                },
+                "store_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Store Id",
+                  "type": "string"
+                },
+                "assignee": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Assignee",
+                  "type": "string"
+                },
+                "due_date": {
+                  "format": "date",
+                  "title": "Due Date",
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": ".*\\S.*",
+                  "title": "Idempotency Key",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "store_id",
+                "assignee",
+                "due_date",
+                "idempotency_key"
+              ],
+              "title": "create_taskArguments",
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "$defs": {
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "store_id": {
+                      "title": "Store Id",
+                      "type": "string"
+                    },
+                    "assignee": {
+                      "title": "Assignee",
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "format": "date",
+                      "title": "Due Date",
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "open",
+                      "enum": [
+                        "open",
+                        "in_progress",
+                        "completed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "task_id",
+                    "title",
+                    "store_id",
+                    "assignee",
+                    "due_date"
+                  ],
+                  "title": "Task",
+                  "type": "object"
+                },
+                "TaskCreated": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "task": {
+                      "$ref": "#/$defs/Task"
+                    },
+                    "task_id": {
+                      "title": "Task Id",
+                      "type": "string"
+                    },
+                    "replayed": {
+                      "title": "Replayed",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "task",
+                    "task_id",
+                    "replayed"
+                  ],
+                  "title": "TaskCreated",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "const": "demo",
+                  "default": "demo",
+                  "title": "Mode",
+                  "type": "string"
+                },
+                "synthetic": {
+                  "const": true,
+                  "default": true,
+                  "title": "Synthetic",
+                  "type": "boolean"
+                },
+                "source": {
+                  "title": "Source",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/$defs/TaskCreated"
+                }
+              },
+              "required": [
+                "source",
+                "data"
+              ],
+              "title": "Result[TaskCreated]",
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          }
+        ],
+        "matches_contract": true
+      }
+    },
+    "read_tool_results": [
+      {
+        "capability": "storetime",
+        "tool": "get_schedules",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "storetime",
+          "data": {
+            "schedules": [
+              {
+                "schedule_id": "S-1",
+                "store_id": "DEMO-001",
+                "employee_id": "DEMO-EMP-1",
+                "date": "2026-01-05",
+                "scheduled_hours": 8.0
+              },
+              {
+                "schedule_id": "S-2",
+                "store_id": "DEMO-001",
+                "employee_id": "DEMO-EMP-2",
+                "date": "2026-01-06",
+                "scheduled_hours": 8.0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "capability": "storetime",
+        "tool": "get_training_blocks",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "storetime",
+          "data": {
+            "blocks": [
+              {
+                "block_id": "B-1",
+                "store_id": "DEMO-001",
+                "employee_id": "DEMO-EMP-1",
+                "date": "2026-01-05",
+                "protected": true,
+                "scheduled_hours": 3.0,
+                "completed_hours": 1.0,
+                "converted_hours": 1.0
+              },
+              {
+                "block_id": "B-2",
+                "store_id": "DEMO-001",
+                "employee_id": "DEMO-EMP-2",
+                "date": "2026-01-06",
+                "protected": true,
+                "scheduled_hours": 3.0,
+                "completed_hours": 2.0,
+                "converted_hours": 1.0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "capability": "storetime",
+        "tool": "get_training_hours",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "storetime",
+          "data": {
+            "hours": {
+              "store_id": "DEMO-001",
+              "start_date": "2026-01-05",
+              "end_date": "2026-01-06",
+              "scheduled_hours": 6.0,
+              "protected_hours": 6.0,
+              "completed_hours": 3.0,
+              "converted_hours": 2.0
+            }
+          }
+        }
+      },
+      {
+        "capability": "storetime",
+        "tool": "get_coverage_reasons",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "storetime",
+          "data": {
+            "reasons": [
+              {
+                "reason_id": "R-1",
+                "block_id": "B-1",
+                "reason_code": "PEAK_COVERAGE",
+                "description": "Synthetic recorded floor coverage contributor",
+                "converted_hours": 1.0
+              },
+              {
+                "reason_id": "R-2",
+                "block_id": "B-2",
+                "reason_code": "ABSENCE_COVERAGE",
+                "description": "Synthetic recorded floor coverage contributor",
+                "converted_hours": 1.0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "capability": "storetime",
+        "tool": "diagnose_training_gap",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "storetime",
+          "data": {
+            "diagnostic": {
+              "hours": {
+                "store_id": "DEMO-001",
+                "start_date": "2026-01-05",
+                "end_date": "2026-01-06",
+                "scheduled_hours": 6.0,
+                "protected_hours": 6.0,
+                "completed_hours": 3.0,
+                "converted_hours": 2.0
+              },
+              "completion_gap_hours": 3.0,
+              "coverage_reasons": [
+                {
+                  "reason_id": "R-1",
+                  "block_id": "B-1",
+                  "reason_code": "PEAK_COVERAGE",
+                  "description": "Synthetic recorded floor coverage contributor",
+                  "converted_hours": 1.0
+                },
+                {
+                  "reason_id": "R-2",
+                  "block_id": "B-2",
+                  "reason_code": "ABSENCE_COVERAGE",
+                  "description": "Synthetic recorded floor coverage contributor",
+                  "converted_hours": 1.0
+                }
+              ],
+              "evidence_block_ids": [
+                "B-1",
+                "B-2"
+              ],
+              "limitations": [
+                "Synthetic demo records, not live employee data.",
+                "Recorded reasons are contributors, not proof of every incomplete hour."
+              ]
+            }
+          }
+        }
+      },
+      {
+        "capability": "opstask",
+        "tool": "list_followups",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "opstask",
+          "data": {
+            "tasks": [
+              {
+                "task_id": "DEMO-SEED-001",
+                "title": "Synthetic seeded follow-up",
+                "store_id": "DEMO-001",
+                "assignee": "DEMO-MANAGER",
+                "due_date": "2030-01-15",
+                "status": "open"
+              }
+            ],
+            "next_cursor": null
+          }
+        }
+      },
+      {
+        "capability": "opstask",
+        "tool": "get_task",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "opstask",
+          "data": {
+            "task": {
+              "task_id": "DEMO-SEED-001",
+              "title": "Synthetic seeded follow-up",
+              "store_id": "DEMO-001",
+              "assignee": "DEMO-MANAGER",
+              "due_date": "2030-01-15",
+              "status": "open"
+            }
+          }
+        }
+      },
+      {
+        "capability": "confluence",
+        "tool": "search_company_context",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "confluence",
+          "data": {
+            "documents": [
+              {
+                "source_id": "DEMO-TRAINING-1",
+                "document_id": "DEMO-TRAINING",
+                "title": "Synthetic Training Policy",
+                "source_url": "https://demo.invalid/policies/training#protected-blocks",
+                "section": "Protected training blocks",
+                "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+                "synthetic": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "capability": "confluence",
+        "tool": "get_policy_document",
+        "result": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "confluence",
+          "data": {
+            "document": {
+              "source_id": "DEMO-TRAINING-1",
+              "document_id": "DEMO-TRAINING",
+              "title": "Synthetic Training Policy",
+              "source_url": "https://demo.invalid/policies/training#protected-blocks",
+              "section": "Protected training blocks",
+              "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+              "synthetic": true
+            }
+          }
+        }
+      }
+    ],
+    "real_http_processes": 3,
+    "live_databricks_verified": false
+  },
+  "scenarios": {
+    "training": {
+      "diagnosis": {
+        "hours": {
+          "store_id": "DEMO-001",
+          "start_date": "2026-01-05",
+          "end_date": "2026-01-06",
+          "scheduled_hours": 6.0,
+          "protected_hours": 6.0,
+          "completed_hours": 3.0,
+          "converted_hours": 2.0
+        },
+        "completion_gap_hours": 3.0,
+        "coverage_reasons": [
+          {
+            "reason_id": "R-1",
+            "block_id": "B-1",
+            "reason_code": "PEAK_COVERAGE",
+            "description": "Synthetic recorded floor coverage contributor",
+            "converted_hours": 1.0
+          },
+          {
+            "reason_id": "R-2",
+            "block_id": "B-2",
+            "reason_code": "ABSENCE_COVERAGE",
+            "description": "Synthetic recorded floor coverage contributor",
+            "converted_hours": 1.0
+          }
+        ],
+        "evidence_block_ids": [
+          "B-1",
+          "B-2"
+        ],
+        "limitations": [
+          "Synthetic demo records, not live employee data.",
+          "Recorded reasons are contributors, not proof of every incomplete hour."
+        ]
+      },
+      "response": {
+        "tool_choice": null,
+        "truncation": null,
+        "id": null,
+        "created_at": null,
+        "error": null,
+        "incomplete_details": null,
+        "instructions": null,
+        "metadata": null,
+        "model": null,
+        "object": "response",
+        "output": [
+          {
+            "type": "message",
+            "id": "6bdc9475e2fa48efbd171411ede2ab0e",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Synthetic demo: 6 scheduled hours, 3 completed (50%), 3-hour gap; 2 hours converted to coverage. Evidence blocks B-1 and B-2; recorded reasons do not prove every incomplete hour.\n\nSources: TEST-ONLY-GENIE-METRICS"
+              }
+            ]
+          }
+        ],
+        "parallel_tool_calls": null,
+        "temperature": null,
+        "tools": null,
+        "top_p": null,
+        "max_output_tokens": null,
+        "previous_response_id": null,
+        "reasoning": null,
+        "status": null,
+        "text": null,
+        "usage": null,
+        "user": null,
+        "custom_outputs": {
+          "session_id": "training-validation",
+          "citations": [
+            "TEST-ONLY-GENIE-METRICS"
+          ],
+          "proposals": [],
+          "tool_calls": [
+            {
+              "capability": "genie",
+              "tool": "query_metrics",
+              "result": {
+                "synthetic": true,
+                "mode": "demo",
+                "source_id": "TEST-ONLY-GENIE-METRICS",
+                "store_id": "DEMO-001",
+                "scheduled_hours": 6,
+                "completed_hours": 3,
+                "completion_percent": 50
+              }
+            },
+            {
+              "capability": "storetime",
+              "tool": "diagnose_training_gap",
+              "result": {
+                "mode": "demo",
+                "synthetic": true,
+                "source": "storetime",
+                "data": {
+                  "diagnostic": {
+                    "hours": {
+                      "store_id": "DEMO-001",
+                      "start_date": "2026-01-05",
+                      "end_date": "2026-01-06",
+                      "scheduled_hours": 6.0,
+                      "protected_hours": 6.0,
+                      "completed_hours": 3.0,
+                      "converted_hours": 2.0
+                    },
+                    "completion_gap_hours": 3.0,
+                    "coverage_reasons": [
+                      {
+                        "reason_id": "R-1",
+                        "block_id": "B-1",
+                        "reason_code": "PEAK_COVERAGE",
+                        "description": "Synthetic recorded floor coverage contributor",
+                        "converted_hours": 1.0
+                      },
+                      {
+                        "reason_id": "R-2",
+                        "block_id": "B-2",
+                        "reason_code": "ABSENCE_COVERAGE",
+                        "description": "Synthetic recorded floor coverage contributor",
+                        "converted_hours": 1.0
+                      }
+                    ],
+                    "evidence_block_ids": [
+                      "B-1",
+                      "B-2"
+                    ],
+                    "limitations": [
+                      "Synthetic demo records, not live employee data.",
+                      "Recorded reasons are contributors, not proof of every incomplete hour."
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "model_tools": [
+        [
+          "genie_one",
+          "storetime",
+          "opstask_lookup",
+          "confluence",
+          "propose_task"
+        ],
+        [
+          "query_metrics"
+        ],
+        [
+          "query_metrics"
+        ],
+        [
+          "genie_one",
+          "storetime",
+          "opstask_lookup",
+          "confluence",
+          "propose_task"
+        ],
+        [
+          "get_schedules",
+          "get_training_blocks",
+          "get_training_hours",
+          "get_coverage_reasons",
+          "diagnose_training_gap"
+        ],
+        [
+          "get_schedules",
+          "get_training_blocks",
+          "get_training_hours",
+          "get_coverage_reasons",
+          "diagnose_training_gap"
+        ],
+        [
+          "genie_one",
+          "storetime",
+          "opstask_lookup",
+          "confluence",
+          "propose_task"
+        ]
+      ]
+    },
+    "task": {
+      "approval_id": "1378f0a5405f4069b67bb6e3816f4587",
+      "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8",
+      "snapshots": {
+        "before": [
+          {
+            "task_id": "DEMO-SEED-001",
+            "title": "Synthetic seeded follow-up",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          }
+        ],
+        "after_proposal": [
+          {
+            "task_id": "DEMO-SEED-001",
+            "title": "Synthetic seeded follow-up",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          }
+        ],
+        "after_approval": [
+          {
+            "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8",
+            "title": "Review synthetic training gap",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          },
+          {
+            "task_id": "DEMO-SEED-001",
+            "title": "Synthetic seeded follow-up",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          }
+        ],
+        "after_replay": [
+          {
+            "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8",
+            "title": "Review synthetic training gap",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          },
+          {
+            "task_id": "DEMO-SEED-001",
+            "title": "Synthetic seeded follow-up",
+            "store_id": "DEMO-001",
+            "assignee": "DEMO-MANAGER",
+            "due_date": "2030-01-15",
+            "status": "open"
+          }
+        ]
+      },
+      "counts": {
+        "before": 1,
+        "after_proposal": 1,
+        "after_approval": 2,
+        "after_replay": 2
+      },
+      "proposed": {
+        "response": {
+          "tool_choice": null,
+          "truncation": null,
+          "id": null,
+          "created_at": null,
+          "error": null,
+          "incomplete_details": null,
+          "instructions": null,
+          "metadata": null,
+          "model": null,
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "id": "76e14a6846e04f0ab478aac7acea849f",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "Synthetic task proposed. Explicit approval is required."
+                }
+              ]
+            }
+          ],
+          "parallel_tool_calls": null,
+          "temperature": null,
+          "tools": null,
+          "top_p": null,
+          "max_output_tokens": null,
+          "previous_response_id": null,
+          "reasoning": null,
+          "status": null,
+          "text": null,
+          "usage": null,
+          "user": null,
+          "custom_outputs": {
+            "session_id": "task-validation",
+            "citations": [],
+            "proposals": [
+              {
+                "approval_id": "1378f0a5405f4069b67bb6e3816f4587",
+                "task": {
+                  "title": "Review synthetic training gap",
+                  "store_id": "DEMO-001",
+                  "assignee": "DEMO-MANAGER",
+                  "due_date": "2030-01-15"
+                },
+                "status": "pending"
+              }
+            ],
+            "tool_calls": []
+          }
+        },
+        "model_tools": [
+          [
+            "genie_one",
+            "storetime",
+            "opstask_lookup",
+            "confluence",
+            "propose_task"
+          ],
+          [
+            "genie_one",
+            "storetime",
+            "opstask_lookup",
+            "confluence",
+            "propose_task"
+          ]
+        ]
+      },
+      "approved": {
+        "response": {
+          "tool_choice": null,
+          "truncation": null,
+          "id": null,
+          "created_at": null,
+          "error": null,
+          "incomplete_details": null,
+          "instructions": null,
+          "metadata": null,
+          "model": null,
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "id": "ae8a8242e987465b8ea838e56802af67",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "{\"status\": \"created\", \"task_id\": \"DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8\"}"
+                }
+              ]
+            }
+          ],
+          "parallel_tool_calls": null,
+          "temperature": null,
+          "tools": null,
+          "top_p": null,
+          "max_output_tokens": null,
+          "previous_response_id": null,
+          "reasoning": null,
+          "status": null,
+          "text": null,
+          "usage": null,
+          "user": null,
+          "custom_outputs": {
+            "session_id": "task-validation",
+            "action": {
+              "status": "created",
+              "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8"
+            }
+          }
+        },
+        "model_tools": []
+      },
+      "replay": {
+        "response": {
+          "tool_choice": null,
+          "truncation": null,
+          "id": null,
+          "created_at": null,
+          "error": null,
+          "incomplete_details": null,
+          "instructions": null,
+          "metadata": null,
+          "model": null,
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "id": "ddedf00b3dc8453f89cb46f2390a595d",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "{\"status\": \"created\", \"task_id\": \"DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8\"}"
+                }
+              ]
+            }
+          ],
+          "parallel_tool_calls": null,
+          "temperature": null,
+          "tools": null,
+          "top_p": null,
+          "max_output_tokens": null,
+          "previous_response_id": null,
+          "reasoning": null,
+          "status": null,
+          "text": null,
+          "usage": null,
+          "user": null,
+          "custom_outputs": {
+            "session_id": "task-validation",
+            "action": {
+              "status": "created",
+              "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8"
+            }
+          }
+        },
+        "model_tools": []
+      },
+      "server_replay": {
+        "meta": null,
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"mode\": \"demo\",\n  \"synthetic\": true,\n  \"source\": \"opstask\",\n  \"data\": {\n    \"task\": {\n      \"task_id\": \"DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8\",\n      \"title\": \"Review synthetic training gap\",\n      \"store_id\": \"DEMO-001\",\n      \"assignee\": \"DEMO-MANAGER\",\n      \"due_date\": \"2030-01-15\",\n      \"status\": \"open\"\n    },\n    \"task_id\": \"DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8\",\n    \"replayed\": true\n  }\n}",
+            "annotations": null,
+            "meta": null
+          }
+        ],
+        "structuredContent": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "opstask",
+          "data": {
+            "task": {
+              "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8",
+              "title": "Review synthetic training gap",
+              "store_id": "DEMO-001",
+              "assignee": "DEMO-MANAGER",
+              "due_date": "2030-01-15",
+              "status": "open"
+            },
+            "task_id": "DEMO-36c6353bfbd7f68c0eeea9f2662b9e6fd7a4ed7367e5d499b755176a25130fe8",
+            "replayed": true
+          }
+        },
+        "isError": false
+      },
+      "rejection": {
+        "response": {
+          "tool_choice": null,
+          "truncation": null,
+          "id": null,
+          "created_at": null,
+          "error": null,
+          "incomplete_details": null,
+          "instructions": null,
+          "metadata": null,
+          "model": null,
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "id": "0659f55673af49c9a0d7554bf66e19dd",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "{\"status\": \"rejected\", \"task_id\": null}"
+                }
+              ]
+            }
+          ],
+          "parallel_tool_calls": null,
+          "temperature": null,
+          "tools": null,
+          "top_p": null,
+          "max_output_tokens": null,
+          "previous_response_id": null,
+          "reasoning": null,
+          "status": null,
+          "text": null,
+          "usage": null,
+          "user": null,
+          "custom_outputs": {
+            "session_id": "task-validation",
+            "action": {
+              "status": "rejected",
+              "task_id": null
+            }
+          }
+        },
+        "model_tools": []
+      }
+    },
+    "policy": {
+      "search": {
+        "meta": null,
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"mode\": \"demo\",\n  \"synthetic\": true,\n  \"source\": \"confluence\",\n  \"data\": {\n    \"documents\": [\n      {\n        \"source_id\": \"DEMO-TRAINING-1\",\n        \"document_id\": \"DEMO-TRAINING\",\n        \"title\": \"Synthetic Training Policy\",\n        \"source_url\": \"https://demo.invalid/policies/training#protected-blocks\",\n        \"section\": \"Protected training blocks\",\n        \"text\": \"SYNTHETIC DEMO POLICY \u2014 not real company policy.\\n\\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\\n\",\n        \"synthetic\": true\n      }\n    ]\n  }\n}",
+            "annotations": null,
+            "meta": null
+          }
+        ],
+        "structuredContent": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "confluence",
+          "data": {
+            "documents": [
+              {
+                "source_id": "DEMO-TRAINING-1",
+                "document_id": "DEMO-TRAINING",
+                "title": "Synthetic Training Policy",
+                "source_url": "https://demo.invalid/policies/training#protected-blocks",
+                "section": "Protected training blocks",
+                "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+                "synthetic": true
+              }
+            ]
+          }
+        },
+        "isError": false
+      },
+      "document": {
+        "source_id": "DEMO-TRAINING-1",
+        "document_id": "DEMO-TRAINING",
+        "title": "Synthetic Training Policy",
+        "source_url": "https://demo.invalid/policies/training#protected-blocks",
+        "section": "Protected training blocks",
+        "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+        "synthetic": true
+      },
+      "response": {
+        "tool_choice": null,
+        "truncation": null,
+        "id": null,
+        "created_at": null,
+        "error": null,
+        "incomplete_details": null,
+        "instructions": null,
+        "metadata": null,
+        "model": null,
+        "object": "response",
+        "output": [
+          {
+            "type": "message",
+            "id": "1074407d812644f6bf9375f017aeb7fc",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Synthetic demo Confluence policy excerpts:\n> SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n\n\nSources: DEMO-TRAINING-1, https://demo.invalid/policies/training#protected-blocks"
+              }
+            ]
+          }
+        ],
+        "parallel_tool_calls": null,
+        "temperature": null,
+        "tools": null,
+        "top_p": null,
+        "max_output_tokens": null,
+        "previous_response_id": null,
+        "reasoning": null,
+        "status": null,
+        "text": null,
+        "usage": null,
+        "user": null,
+        "custom_outputs": {
+          "session_id": "policy-validation",
+          "citations": [
+            "DEMO-TRAINING-1",
+            "https://demo.invalid/policies/training#protected-blocks"
+          ],
+          "proposals": [],
+          "tool_calls": [
+            {
+              "capability": "confluence",
+              "tool": "search_company_context",
+              "result": {
+                "mode": "demo",
+                "synthetic": true,
+                "source": "confluence",
+                "data": {
+                  "documents": [
+                    {
+                      "source_id": "DEMO-TRAINING-1",
+                      "document_id": "DEMO-TRAINING",
+                      "title": "Synthetic Training Policy",
+                      "source_url": "https://demo.invalid/policies/training#protected-blocks",
+                      "section": "Protected training blocks",
+                      "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+                      "synthetic": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "capability": "confluence",
+              "tool": "get_policy_document",
+              "result": {
+                "mode": "demo",
+                "synthetic": true,
+                "source": "confluence",
+                "data": {
+                  "document": {
+                    "source_id": "DEMO-TRAINING-1",
+                    "document_id": "DEMO-TRAINING",
+                    "title": "Synthetic Training Policy",
+                    "source_url": "https://demo.invalid/policies/training#protected-blocks",
+                    "section": "Protected training blocks",
+                    "text": "SYNTHETIC DEMO POLICY \u2014 not real company policy.\n\nProtected training blocks are planned learning time. When a block is converted to floor coverage, record the converted hours and the coverage reason. Review incomplete training with the store manager; this demo does not authorize automated schedule changes.\n",
+                    "synthetic": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "model_tools": [
+        [
+          "genie_one",
+          "storetime",
+          "opstask_lookup",
+          "confluence",
+          "propose_task"
+        ],
+        [
+          "search_company_context",
+          "get_policy_document"
+        ],
+        [
+          "search_company_context",
+          "get_policy_document"
+        ],
+        [
+          "search_company_context",
+          "get_policy_document"
+        ],
+        [
+          "genie_one",
+          "storetime",
+          "opstask_lookup",
+          "confluence",
+          "propose_task"
+        ]
+      ]
+    },
+    "writer_boundary": {
+      "server_checks_application_approval": false,
+      "direct_writer_result": {
+        "meta": null,
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"mode\": \"demo\",\n  \"synthetic\": true,\n  \"source\": \"opstask\",\n  \"data\": {\n    \"task\": {\n      \"task_id\": \"DEMO-db8ea9e3b2019c4abf7ff019c4ff351276729a4467c495e229902c71b86119c7\",\n      \"title\": \"Direct writer boundary probe\",\n      \"store_id\": \"DEMO-001\",\n      \"assignee\": \"DEMO-MANAGER\",\n      \"due_date\": \"2030-01-15\",\n      \"status\": \"open\"\n    },\n    \"task_id\": \"DEMO-db8ea9e3b2019c4abf7ff019c4ff351276729a4467c495e229902c71b86119c7\",\n    \"replayed\": false\n  }\n}",
+            "annotations": null,
+            "meta": null
+          }
+        ],
+        "structuredContent": {
+          "mode": "demo",
+          "synthetic": true,
+          "source": "opstask",
+          "data": {
+            "task": {
+              "task_id": "DEMO-db8ea9e3b2019c4abf7ff019c4ff351276729a4467c495e229902c71b86119c7",
+              "title": "Direct writer boundary probe",
+              "store_id": "DEMO-001",
+              "assignee": "DEMO-MANAGER",
+              "due_date": "2030-01-15",
+              "status": "open"
+            },
+            "task_id": "DEMO-db8ea9e3b2019c4abf7ff019c4ff351276729a4467c495e229902c71b86119c7",
+            "replayed": false
+          }
+        },
+        "isError": false
+      },
+      "explanation": "Server trusts write credential; only the application approval handler gates its writer. Local roles simulate identities, not real OBO/SP authorization."
+    }
+  },
+  "contracts_sha256": "e7eaea1f08d6752481eaa8602a241ccd3b67629cb8a0e2071087dcc8d1b337f3"
+}

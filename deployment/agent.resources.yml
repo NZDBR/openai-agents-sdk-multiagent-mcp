@@ -1,0 +1,123 @@
+resources:
+  apps:
+    store_operations:
+      name: ${var.app_name}
+      description: Governed Store Operations Agent · official Databricks OpenAI SDK
+        scaffold
+      source_code_path: ../.deploy/agent
+      config:
+        command:
+        - uv
+        - run
+        - --no-default-groups
+        - start-app
+        env:
+        - name: MODEL_ENDPOINT
+          value: ${var.model_endpoint}
+        - name: GENIE_SPACE_ID
+          value: ${var.genie_space_id}
+        - name: LAKEBASE_ENDPOINT
+          value: ${var.lakebase_endpoint}
+        - name: LAKEBASE_AGENT_MEMORY_SCHEMA
+          value: ${var.memory_schema}
+        - name: STORE_OPS_SCHEMA
+          value: ${var.memory_schema}
+        - name: MLFLOW_EXPERIMENT_ID
+          value: ${var.experiment_id}
+        - name: MLFLOW_TRACING_SQL_WAREHOUSE_ID
+          value: ${var.sql_warehouse_id}
+        - name: MLFLOW_TRACKING_URI
+          value: databricks
+        - name: MLFLOW_REGISTRY_URI
+          value: databricks-uc
+        - name: API_PROXY
+          value: http://localhost:8000/invocations
+        - name: CHAT_APP_PORT
+          value: '3000'
+        - name: CHAT_PROXY_TIMEOUT_SECONDS
+          value: '300'
+        - name: DATABRICKS_WORKFLOW_JOB_ID
+          value: ${var.workflow_job_id}
+        - name: OPSTASK_CREATE_TOOL
+          value: ${var.opstask_create_tool}
+        - name: OPSTASK_ARGUMENT_MAP
+          value: ${var.opstask_argument_map}
+        - name: OPSTASK_RESULT_ID_FIELD
+          value: ${var.opstask_result_id_field}
+        - name: STORETIME_CONNECTION
+          value: ${var.storetime_connection}
+        - name: STORETIME_READ_TOOLS
+          value: ${var.storetime_read_tools}
+        - name: OPSTASK_READ_CONNECTION
+          value: ${var.opstask_read_connection}
+        - name: OPSTASK_READ_TOOLS
+          value: ${var.opstask_read_tools}
+        - name: CONFLUENCE_CONNECTION
+          value: ${var.confluence_connection}
+        - name: CONFLUENCE_READ_TOOLS
+          value: ${var.confluence_read_tools}
+        - name: GENIE_MCP_URL
+          value: ${var.genie_mcp_url}
+        - name: STORETIME_MCP_URL
+          value: ${var.storetime_mcp_url}
+        - name: OPSTASK_MCP_URL
+          value: ${var.opstask_mcp_url}
+        - name: CONFLUENCE_MCP_URL
+          value: ${var.confluence_mcp_url}
+        - name: USER_AUTHORIZATION_MODE
+          value: obo
+        - name: OPSTASK_WRITE_CONNECTION
+          value: ${var.opstask_write_connection}
+        - name: OPSTASK_WRITE_MCP_URL
+          value: ${var.opstask_write_mcp_url}
+        - name: OPSTASK_WRITE_AUTH_MODE
+          value: ${var.opstask_write_auth_mode}
+        - name: OPSTASK_WRITE_OAUTH_SCOPES
+          value: ${var.opstask_write_oauth_scopes}
+        - name: OPSTASK_APPROVAL_MODE
+          value: ${var.opstask_approval_mode}
+        - name: OPSTASK_GATEWAY_POLICY_ID
+          value: ${var.opstask_gateway_policy_id}
+      resources:
+      - name: experiment
+        experiment:
+          experiment_id: ${var.experiment_id}
+          permission: CAN_MANAGE
+      - name: llm-endpoint
+        serving_endpoint:
+          name: ${var.model_endpoint}
+          permission: CAN_QUERY
+      - name: genie-space
+        genie_space:
+          name: Genie One
+          space_id: ${var.genie_space_id}
+          permission: CAN_RUN
+      - name: postgres
+        postgres:
+          branch: ${var.lakebase_branch}
+          database: ${var.lakebase_database}
+          permission: CAN_CONNECT_AND_CREATE
+      - name: background-job
+        job:
+          id: ${var.workflow_job_id}
+          permission: CAN_MANAGE_RUN
+      - name: storetime-mcp
+        uc_securable:
+          securable_full_name: ${var.storetime_connection}
+          securable_type: CONNECTION
+          permission: USE_CONNECTION
+      - name: opstask-read-mcp
+        uc_securable:
+          securable_full_name: ${var.opstask_read_connection}
+          securable_type: CONNECTION
+          permission: USE_CONNECTION
+      - name: confluence-mcp
+        uc_securable:
+          securable_full_name: ${var.confluence_connection}
+          securable_type: CONNECTION
+          permission: USE_CONNECTION
+      - name: opstask-write-mcp
+        uc_securable:
+          securable_full_name: ${var.opstask_write_connection}
+          securable_type: CONNECTION
+          permission: USE_CONNECTION

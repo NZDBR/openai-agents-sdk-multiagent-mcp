@@ -1,0 +1,125 @@
+targets:
+  demo:
+    mode: development
+    resources:
+      apps:
+        storetime:
+          name: ${var.storetime_app_name}
+          source_code_path: ../.deploy/storetime
+          config:
+            command:
+            - uv
+            - run
+            - --no-default-groups
+            - demo-storetime
+            env:
+            - name: MCP_READ_TOKEN
+              value_from: read-token
+            - name: MCP_PUBLIC_HOST
+              value: ${var.storetime_public_host}
+          resources:
+          - name: read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.storetime_read_secret_key}
+              permission: READ
+        opstask:
+          name: ${var.opstask_app_name}
+          source_code_path: ../.deploy/opstask
+          config:
+            command:
+            - uv
+            - run
+            - --no-default-groups
+            - demo-opstask
+            env:
+            - name: MCP_READ_TOKEN
+              value_from: read-token
+            - name: MCP_PUBLIC_HOST
+              value: ${var.opstask_public_host}
+            - name: MCP_WRITE_TOKEN
+              value_from: write-token
+            - name: MCP_TASK_DB
+              value: .demo-data/tasks.db
+          resources:
+          - name: read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.opstask_read_secret_key}
+              permission: READ
+          - name: write-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.opstask_write_secret_key}
+              permission: READ
+        confluence:
+          name: ${var.confluence_app_name}
+          source_code_path: ../.deploy/confluence
+          config:
+            command:
+            - uv
+            - run
+            - --no-default-groups
+            - demo-confluence
+            env:
+            - name: MCP_READ_TOKEN
+              value_from: read-token
+            - name: MCP_PUBLIC_HOST
+              value: ${var.confluence_public_host}
+          resources:
+          - name: read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.confluence_read_secret_key}
+              permission: READ
+        store_operations:
+          config:
+            env:
+            - name: MCP_CONNECTION_MODE
+              value: deployed_demo
+            - name: DEMO_MCP_ALLOWED_HOSTS
+              value: ${var.demo_mcp_allowed_hosts}
+            - name: STORETIME_MCP_URL
+              value: ${var.demo_storetime_mcp_url}
+            - name: DEMO_STORETIME_READ_TOKEN
+              value_from: demo-storetime-read-token
+            - name: OPSTASK_MCP_URL
+              value: ${var.demo_opstask_mcp_url}
+            - name: DEMO_OPSTASK_READ_TOKEN
+              value_from: demo-opstask-read-token
+            - name: CONFLUENCE_MCP_URL
+              value: ${var.demo_confluence_mcp_url}
+            - name: DEMO_CONFLUENCE_READ_TOKEN
+              value_from: demo-confluence-read-token
+            - name: DEMO_OPSTASK_WRITE_TOKEN
+              value_from: demo-opstask-write-token
+            - name: STORETIME_READ_TOOLS
+              value: get_schedules,get_training_blocks,get_training_hours,get_coverage_reasons,diagnose_training_gap
+            - name: OPSTASK_READ_TOOLS
+              value: list_followups,get_task
+            - name: CONFLUENCE_READ_TOOLS
+              value: search_company_context,get_policy_document
+            - name: OPSTASK_CREATE_TOOL
+              value: create_task
+          resources:
+          - name: demo-storetime-read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.storetime_read_secret_key}
+              permission: READ
+          - name: demo-opstask-read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.opstask_read_secret_key}
+              permission: READ
+          - name: demo-confluence-read-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.confluence_read_secret_key}
+              permission: READ
+          - name: demo-opstask-write-token
+            secret:
+              scope: ${var.secret_scope}
+              key: ${var.opstask_write_secret_key}
+              permission: READ
+          name: ${var.app_name}

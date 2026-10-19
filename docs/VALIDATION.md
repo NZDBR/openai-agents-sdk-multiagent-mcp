@@ -50,3 +50,7 @@ The lost uncommitted MCP layer was functionally reconstructed, not recovered. Se
 ## Enterprise identity refactor validation
 
 Applied after reconstruction commit `8e1e729915dd7c4602dfd1742425b09459ea0796` was pushed. [Post-refactor evidence](validation/identity/IDENTITY_VALIDATION.md): 73 passed, 2 skipped, local demo harness and wheel passed. MCP source/contracts and reconstruction evidence are unchanged. SDK identity construction is tested with fake credentials; actual OBO/M2M, UC denial, Gateway ASK, Lakebase and deployment still require a workspace.
+
+## Deployment layout refactor
+
+[Deployment-only validation](validation/deployment-layout/VALIDATION.md): 79 passed, 2 skipped; checkout/staged frontend, actual staged MCP apps, separate wheels and pinned official bundle-schema checks passed. No runtime business source changed. Authenticated Databricks CLI/workspace validation remains required.

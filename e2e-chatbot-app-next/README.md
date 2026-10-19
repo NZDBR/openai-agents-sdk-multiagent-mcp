@@ -1,3 +1,5 @@
+> This vendored frontend runs inside the root Store Operations App. Its standalone deployment YAML is archived under `../docs/template-reference/chat-ui/`. Use `../deployment/README.md` for this repository's active deployment; the upstream standalone deployment instructions below are retained for provenance.
+
 <a href="https://docs.databricks.com/aws/en/generative-ai/agent-framework/chat-app">
   <h1 align="center">Databricks Agent Chat Template</h1>
 </a>

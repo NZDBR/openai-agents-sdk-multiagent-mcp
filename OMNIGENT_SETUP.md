@@ -21,3 +21,5 @@ Add your team's supported project configuration under `omnigent/` once the platf
 Required team bindings are workspace host/profile, app name, MCP UC connections and audited tools, Genie space, Lakebase endpoint/SQL namespaces, model/judge endpoints, MLflow experiment/trace schema/warehouse, and Workflow resource IDs. Supply credentials through approved secret/profile bindings; never embed values in the harness project file or Codex prompts.
 
 The standard debugger config in `.vscode/launch.json` is a VS Code configuration, **not an Omnigent schema**. `AGENTS.md` guides Codex without adding a separate execution engine. Any team-specific meta-harness must preserve the explicit human approval boundary; it must not auto-approve tool mutations during debug or redeploy.
+
+Deployment now uses the root bundle plus `deployment/` resource definitions. Stage the selected target with `uv run python -m scripts.stage_apps --target <target>` before CLI validation/deploy. Harness settings are excluded from App artifacts. See deployment/README.md; this does not introduce an Omnigent schema.

@@ -23,8 +23,8 @@ StoreTime and Confluence read immutable synthetic JSON/Markdown. OpsTask uses de
 
 The OpsTask server trusts the write credential; it does not verify human approval records. The application performs explicit approval. The local credential boundary simulates identity roles; it does not prove OBO, OAuth, UC or Gateway authorization.
 
-## Databricks Apps examples
+## Databricks Apps deployments
 
-`databricks.yml` declares three separate Apps with generic DEV/PROD targets. Supply all variables with `BUNDLE_VAR_*` or target bindings: workspace_host, secret_scope, each app_name/public_host/read_secret_key, and opstask_write_secret_key. Each app uses the root package and a distinct startup command. Bind secrets with supported Apps secret resources. Set public_host to the exact deployed App hostname for host-header protection. Deployment config is parsed/tested locally, not server-validated or deployed.
+The single root bundle defines the `demo` target and three separate App resources in `deployment/demo.resources.yml`. Follow [root deployment instructions](../deployment/README.md). The old nested bundle and duplicate per-service app.yaml files have been consolidated; startup commands and service implementations are unchanged. Use `uv run python -m scripts.stage_apps --target demo` before bundle validation. All workspace IDs, App names, hosts, secret keys and endpoint URLs remain supplied through configuration.
 
-Genie is not implemented here. Full interactive chat also requires real Genie, model, authenticated employee identity, Lakebase and other App bindings; no synthetic agent runtime or production SQLite memory fallback is supplied.
+The demo workspace package is installed by the root default development group; `uv sync --locked` still enables the three `demo-*` commands. The production agent wheel excludes these servers and their synthetic data. `uv build --all-packages --wheel` builds separate agent and demo wheels. Demo App persistence remains illustrative SQLite; no production durability is claimed.

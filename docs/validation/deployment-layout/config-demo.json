@@ -1,0 +1,11 @@
+{
+  "target": "demo",
+  "apps": [
+    "confluence",
+    "opstask",
+    "store_operations",
+    "storetime"
+  ],
+  "checks": "pinned Databricks CLI JSON schema, local structure and bindings",
+  "live_verified": false
+}

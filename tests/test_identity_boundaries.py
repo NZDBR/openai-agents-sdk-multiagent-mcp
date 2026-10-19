@@ -164,7 +164,7 @@ def test_optional_gateway_approval_is_configuration_not_fabricated_api(settings,
     with pytest.raises(ValueError): settings.approval_policy()
     monkeypatch.setenv('OPSTASK_GATEWAY_POLICY_ID','test-policy-id')
     assert settings.approval_policy()==dict(mode='application_and_gateway_ask',policy_id='test-policy-id')
-    for path in ['docs/GOVERNANCE.md','.env.example','databricks.yml']:
+    for path in ['docs/GOVERNANCE.md','.env.example','deployment/agent.resources.yml']:
         assert 'OPSTASK_APPROVAL_MODE' in Path(path).read_text()
 
 
@@ -212,5 +212,5 @@ def test_m2m_secret_binding_example_never_embeds_a_secret_value():
     env={item['name']:item for item in app['config']['env']}
     secret=env['OPSTASK_WRITE_CLIENT_SECRET']
     assert 'value' not in secret
-    assert secret['valueFrom']==app['resources'][0]['name']
+    assert secret['value_from']==app['resources'][0]['name']
     assert app['resources'][0]['secret']['permission']=='READ'

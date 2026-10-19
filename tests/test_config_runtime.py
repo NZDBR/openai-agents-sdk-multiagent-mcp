@@ -38,7 +38,8 @@ def test_configuration_is_portable_and_aliases_work(monkeypatch):
 
 
 def test_dab_targets_permissions_and_resource_substitutions():
-    with open('databricks.yml') as f: bundle = yaml.safe_load(f)
+    from scripts.validate_deployment import load_bundle
+    bundle = load_bundle()
     assert bundle['targets']['dev']['mode'] == 'development'
     assert bundle['targets']['prod']['mode'] == 'production'
     assert bundle['workspace']['host'] == '${var.workspace_host}'

@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    store_operations_background:
+      name: ${var.app_name}-evaluation
+      max_concurrent_runs: 1
+      tasks:
+      - task_key: evaluate
+        existing_cluster_id: ${var.job_cluster_id}
+        notebook_task:
+          notebook_path: ../jobs/evaluate_notebook.py
+          base_parameters:
+            deployment_config: '{"MODEL_ENDPOINT": "${var.model_endpoint}", "GENIE_SPACE_ID":
+              "${var.genie_space_id}", "LAKEBASE_ENDPOINT": "${var.lakebase_endpoint}",
+              "LAKEBASE_AGENT_MEMORY_SCHEMA": "${var.memory_schema}", "STORE_OPS_SCHEMA":
+              "${var.memory_schema}", "MLFLOW_EXPERIMENT_ID": "${var.experiment_id}",
+              "MLFLOW_TRACING_SQL_WAREHOUSE_ID": "${var.sql_warehouse_id}", "MLFLOW_TRACKING_URI":
+              "databricks", "MLFLOW_REGISTRY_URI": "databricks-uc", "OPSTASK_CREATE_TOOL":
+              "${var.opstask_create_tool}", "OPSTASK_ARGUMENT_MAP": "${var.opstask_argument_map}",
+              "OPSTASK_RESULT_ID_FIELD": "${var.opstask_result_id_field}", "STORETIME_CONNECTION":
+              "${var.storetime_connection}", "STORETIME_READ_TOOLS": "${var.storetime_read_tools}",
+              "OPSTASK_READ_TOOLS": "${var.opstask_read_tools}", "CONFLUENCE_CONNECTION":
+              "${var.confluence_connection}", "CONFLUENCE_READ_TOOLS": "${var.confluence_read_tools}",
+              "GENIE_MCP_URL": "${var.genie_mcp_url}", "STORETIME_MCP_URL": "${var.storetime_mcp_url}",
+              "OPSTASK_MCP_URL": "${var.opstask_mcp_url}", "CONFLUENCE_MCP_URL": "${var.confluence_mcp_url}",
+              "BACKGROUND_JOB_ID": "0", "ALLOW_LOCAL_PROFILE_IDENTITY": "true", "OPSTASK_READ_CONNECTION":
+              "${var.opstask_read_connection}", "USER_AUTHORIZATION_MODE": "local_profile"}'
+            judge_model: databricks:/${var.judge_model}
+        libraries:
+        - whl: ../dist/store_operations_agent-*.whl
+      run_as:
+        service_principal_name: ${var.job_service_principal}

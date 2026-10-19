@@ -24,3 +24,5 @@ dist/
 
 .demo-data/
 !.env.demo.example
+
+.deploy/

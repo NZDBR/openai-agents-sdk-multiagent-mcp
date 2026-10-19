@@ -16,3 +16,7 @@ Upstream LICENSE and NOTICE are retained. Modified derived files carry notices. 
 The official `e2e-chatbot-app-next` source/lockfile is vendored at the same commit. Only `client/src/components/chat.tsx` is extended and `store-task-review.tsx` is added for the human approval panel. Build outputs and dependencies are ignored.
 
 The `mcp-apps/` business services are a functional reconstruction from the recorded requirements, not recovered original demo source. They use the pinned MCP Python SDK FastMCP Streamable HTTP/ASGI APIs, independently from the official Agent Server runtime. No missing upstream business implementation is claimed as copied.
+
+## Deployment-only layout refactor
+
+The standalone UI databricks.yml, app.yaml and manifest.yaml are archived unchanged in docs/template-reference/chat-ui/. Their runtime/build sources are unchanged. Active deployment is consolidated in the root bundle with included deployment/ resource definitions. Synthetic MCP packaging is a separate workspace project; the core package excludes its services/data. Pinned CLI schema provenance is in deployment/schema/PROVENANCE.md. These changes do not replace the official Agent Server, SDK session API or official UI behavior.

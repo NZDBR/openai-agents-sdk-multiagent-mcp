@@ -12,7 +12,7 @@ resources:
           - name: OPSTASK_WRITE_CLIENT_ID
             value: <backend-service-principal-client-id>
           - name: OPSTASK_WRITE_CLIENT_SECRET
-            valueFrom: opstask-backend-client-secret
+            value_from: opstask-backend-client-secret
       resources:
         - name: opstask-backend-client-secret
           secret:

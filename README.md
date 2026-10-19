@@ -4,6 +4,12 @@ A portable customization of the **official Databricks OpenAI Agents SDK advanced
 
 The handwritten FastAPI demo and hard-coded store metrics have been removed. The application uses the template's MLflow Responses API, `LongRunningAgentServer`, official chat UI, native `AsyncDatabricksSession`, Databricks model authentication and governed MCP integrations. There is **no synthetic runtime fallback**; scripted models and synthetic agent transports are confined to `tests/`. Explicit synthetic business MCP applications are isolated in `mcp-apps/`.
 
+## Deployment layout
+
+Use the single root `databricks.yml`; see [deployment instructions and artifact boundaries](deployment/README.md). `dev` and `prod` deploy the main App and evaluation Workflow; `demo` additionally deploys the three separate synthetic MCP Apps. Run `uv run python -m scripts.stage_apps --target <target>` before bundle validation/deployment. The active resource definitions are under `deployment/`.
+
+The root Python project is the production agent/evaluation package. The synthetic MCP services are a separate `mcp-apps/pyproject.toml` workspace package, installed with the default development groups. `uv.lock` is canonical; `requirements.txt` is a generated runtime compatibility export. Build both packages with `uv build --all-packages --wheel`. No agent, identity/approval or frontend feature behavior was changed by the layout refactor.
+
 ## Architecture
 
 ```mermaid
@@ -67,7 +73,7 @@ uv sync --locked
 uv run pytest -q
 npm ci --prefix e2e-chatbot-app-next
 npm run build --prefix e2e-chatbot-app-next
-uv build --wheel
+uv build --all-packages --wheel
 ```
 
 Tests run real SDK orchestration with scripted models and test-only MCP transports. They validate boundaries, proposal/approval/rejection, identity scoping, Lakebase adapter contracts, workflow SDK calls, Responses streaming shape, runtime construction, evaluation scorers and local MLflow trace readback. They do not require Databricks credentials. Live checks are marked `integration` and skipped unless explicitly opted in **and** their required configuration is present.
@@ -137,7 +143,8 @@ Environment variables are bindings, **not evidence that a service is connected**
    export BUNDLE_VAR_lakebase_endpoint="$LAKEBASE_ENDPOINT"
    export BUNDLE_VAR_genie_space_id="$GENIE_SPACE_ID"
    # Set the remaining documented BUNDLE_VAR_* bindings too.
-   databricks bundle validate -t dev --profile '<databricks-profile>'
+   uv run python -m scripts.stage_apps --target dev
+databricks bundle validate -t dev --profile '<databricks-profile>'
    databricks bundle deploy -t dev --profile '<databricks-profile>'
    databricks bundle run store_operations -t dev --profile '<databricks-profile>'
    ```

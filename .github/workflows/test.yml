@@ -10,8 +10,12 @@ jobs:
           python-version: '3.12'
           enable-cache: true
       - run: uv sync --locked
+      - run: uv run python -m scripts.stage_apps --target demo
+      - run: uv run python -m scripts.validate_deployment --target dev
+      - run: uv run python -m scripts.validate_deployment --target prod
+      - run: uv run python -m scripts.validate_deployment --target demo
       - run: uv run pytest -q
-      - run: uv build --wheel
+      - run: uv build --all-packages --wheel
   official-chat-ui:
     runs-on: ubuntu-latest
     steps:
