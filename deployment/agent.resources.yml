@@ -9,6 +9,7 @@ resources:
         command:
         - uv
         - run
+        - --frozen
         - --no-default-groups
         - start-app
         env:
@@ -78,6 +79,10 @@ resources:
           value: ${var.opstask_approval_mode}
         - name: OPSTASK_GATEWAY_POLICY_ID
           value: ${var.opstask_gateway_policy_id}
+        - name: UV_FROZEN
+          value: 'true'
+        - name: UV_NO_DEFAULT_GROUPS
+          value: 'true'
       resources:
       - name: experiment
         experiment:

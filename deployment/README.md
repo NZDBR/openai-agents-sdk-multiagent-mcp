@@ -43,12 +43,13 @@ For `demo`, also configure `secret_scope`, per-service app_name/public_host/read
 
 ## Artifacts
 
-`.deploy/` is generated and ignored by Git. Each subdirectory is a standalone source-build project with a derived lock and generated pip compatibility export. The stager rejects dependency version changes relative to the canonical root `uv.lock`. It resolves offline from the existing lock/cache; run `uv sync --locked` first. Only directories marked as owned staging artifacts are replaced.
+`.deploy/` is generated and ignored by Git. Each subdirectory is a filtered workspace source artifact with a byte-for-byte copy of the canonical root `uv.lock` and a generated pip compatibility export. Both workspace manifests retain their original locations. Staging uses `uv export --frozen --offline --package <selected-package> --no-default-groups --no-emit-workspace`; it performs no dependency resolution and requires no populated package cache. Installing the locked dependencies may still require network access. Export failures include stderr and preserve the previous successful artifact. Only directories marked as owned staging artifacts are replaced.
 
 ```text
 .deploy/
   agent/
     pyproject.toml, uv.lock, requirements.txt, README.md, LICENSE, NOTICE
+    mcp-apps/pyproject.toml (workspace metadata only)
     agent_server/
     scripts/ (__init__, start_app, app_diagnostics only)
     evaluations/, jobs/ (core wheel/evaluation entry points)
@@ -56,14 +57,23 @@ For `demo`, also configure `secret_scope`, per-service app_name/public_host/read
       package.json, package-lock.json, tsconfig.json
       client/, server/, packages/ (including db)
       scripts/migrate.ts
-  storetime/   standalone demo project + common demo MCP package/corpus
-  opstask/     standalone demo project + common demo MCP package/corpus
-  confluence/  standalone demo project + common demo MCP package/corpus
+  storetime/   root workspace metadata + mcp-apps/ demo package/corpus
+  opstask/     root workspace metadata + mcp-apps/ demo package/corpus
+  confluence/  root workspace metadata + mcp-apps/ demo package/corpus
 ```
 
-No tests, CI, documentation/evidence directories, editor/harness settings, local env files, source-checkout dependency directories or validation utilities are copied. The production agent has no `mcp-apps/` tree. Demo artifacts have no agent/UI/evaluation code. Shared demo packaging intentionally contains all three services and synthetic corpus; separate App processes and credentials determine exposed capabilities.
+No tests, CI, documentation/evidence directories, editor/harness settings, local env files, source-checkout dependency directories or validation utilities are copied. The production agent carries only `mcp-apps/pyproject.toml` as workspace metadata; no demo server source or corpus is included or installed. Demo artifacts have no agent/UI/evaluation code. Shared demo packaging intentionally contains all three services and synthetic corpus; separate App processes and credentials determine exposed capabilities.
 
-`uv sync --locked --no-default-groups` works inside each artifact. For additional artifact-level checks, install dependencies in each staged MCP App, then run `uv run python -m scripts.validate_demo_stack --artifact-root .deploy` from the checkout. This uses three actual staged-service processes. The agent's frontend can also be built directly under `.deploy/agent/e2e-chatbot-app-next`.
+Consume the copied lock without re-resolving the filtered workspace:
+
+```bash
+# Inside .deploy/agent:
+uv sync --frozen --no-default-groups --package store-operations-agent
+# Inside a staged MCP App:
+uv sync --frozen --no-default-groups --package store-operations-demo-mcp
+```
+
+App commands use `uv run --frozen --no-default-groups`; MCP Apps also explicitly select `--package store-operations-demo-mcp`. The agent sets `UV_FROZEN=true` and `UV_NO_DEFAULT_GROUPS=true` so child uv invocations in the unchanged startup launcher consume the same lock and omit developer groups. Do not run a fresh `uv lock` in these deliberately filtered artifacts. For additional artifact-level checks, install dependencies in each staged MCP App, then run `uv run python -m scripts.validate_demo_stack --artifact-root .deploy` from the checkout. This uses three actual staged-service processes. The agent's frontend can also be built directly under `.deploy/agent/e2e-chatbot-app-next`.
 
 The existing startup launcher is unchanged: frontend `npm ci` and build still run at startup, including the guarded PostgreSQL migration. We do not replace that behavior with prebuilt assets. Runtime dev dependencies needed by that frontend build cannot yet be pruned. Unused icon pruning is deferred until a separate import/asset audit; barrel exports currently reference icon modules.
 
@@ -71,6 +81,6 @@ The existing startup launcher is unchanged: frontend `npm ci` and build still ru
 
 - Root `pyproject.toml` declares agent/evaluation dependencies; `mcp-apps/pyproject.toml` declares demo dependencies. Root `uv.lock` pins the workspace.
 - Default development installation includes the demo workspace package. Production installations omit development groups.
-- `requirements.txt` is a generated, pinned **core runtime** compatibility export. Regenerate with the command in its header; never edit it as a second source of dependency declarations. The redundant `requirements.lock` export is retired. Per-artifact requirements are generated from its verified standalone lock.
+- `requirements.txt` is a generated, pinned **core runtime** compatibility export. Regenerate with the command in its header; never edit it as a second source of dependency declarations. The redundant `requirements.lock` export is retired. Per-artifact requirements export only the selected runtime dependencies from the unchanged canonical workspace lock; workspace projects themselves are omitted from the pip export.
 - Root `manifest.yaml` remains template metadata. Obsolete standalone UI deployment examples are preserved byte-for-byte under `docs/template-reference/chat-ui/`; their paths/variables are archival, not runnable current configuration. Duplicate MCP bundle/app YAML files are replaced by the root demo target.
 - License/NOTICE, template runtime helpers, OBO forwarding, SDK contracts and frontend DB migrations are preserved. Omnigent/Codex files stay in Git, outside deployed artifacts.

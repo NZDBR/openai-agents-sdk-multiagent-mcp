@@ -3,7 +3,6 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
-import tomllib
 from zipfile import ZipFile
 import pytest
 from scripts.stage_apps import ROOT, MARKER, stage
@@ -34,21 +33,23 @@ def test_artifact_exclusions_and_frozen_lock_versions(tmp_path,component):
     assert not (output/'scripts/stage_apps.py').exists()
     for name,digest in manifest['files'].items():
         assert hashlib.sha256((output/name).read_bytes()).hexdigest()==digest
-    lock=tomllib.loads((output/'uv.lock').read_text())
-    canonical=tomllib.loads((ROOT/'uv.lock').read_text())
-    assert {(p['name'],p['version']) for p in lock['package']} <= {(p['name'],p['version']) for p in canonical['package']}
+    assert (output/'uv.lock').read_bytes()==(ROOT/'uv.lock').read_bytes()
+    assert (output/'mcp-apps/pyproject.toml').read_bytes()==(ROOT/'mcp-apps/pyproject.toml').read_bytes()
+    requirements=(output/'requirements.txt').read_text()
+    assert '-e ' not in requirements and 'store-operations-demo-mcp==' not in requirements
+    assert 'pytest==' not in requirements
     assert (output/'requirements.txt').is_file()
     if component=='agent':
-        assert not (output/'mcp-apps').exists()
+        assert sorted(p.relative_to(output/'mcp-apps').as_posix() for p in (output/'mcp-apps').rglob('*'))==['pyproject.toml']
         assert (output/'e2e-chatbot-app-next/packages/db/src/queries.ts').is_file()
         assert (output/'e2e-chatbot-app-next/scripts/migrate.ts').is_file()
         assert (output/'scripts/start_app.py').read_bytes()==(ROOT/'scripts/start_app.py').read_bytes()
-        assert not any(p['name']=='store-operations-demo-mcp' for p in lock['package'])
+        assert manifest['package']=='store-operations-agent'
     else:
         assert not (output/'agent_server').exists()
         assert not (output/'e2e-chatbot-app-next').exists()
         assert (output/'mcp-apps/data/policies/protected-training.md').is_file()
-        assert not any(p['name']=='store-operations-agent' for p in lock['package'])
+        assert manifest['package']=='store-operations-demo-mcp'
 
 
 def test_stager_will_not_delete_unowned_files(tmp_path):
@@ -81,3 +82,59 @@ def test_pinned_official_schema_rejects_inline_app_yaml_spelling():
     binding['valueFrom']=binding.pop('value_from')
     with pytest.raises(ValueError,match='schema rejected'):
         validate_schema(bundle)
+
+
+@pytest.mark.parametrize('component',['agent','storetime'])
+def test_staging_is_offline_cache_independent_and_never_resolves(tmp_path,monkeypatch,component):
+    import scripts.stage_apps as stager
+    cache=tmp_path/'empty-uv-cache'
+    monkeypatch.setenv('UV_CACHE_DIR',str(cache))
+    monkeypatch.setenv('UV_OFFLINE','true')
+    monkeypatch.setenv('UV_PYTHON_DOWNLOADS','never')
+    actual_run=stager.subprocess.run
+    exports=[]
+    def guarded_run(command,**kwargs):
+        assert command[:2] != ['uv','lock'], 'Staging must not run a new resolver'
+        if command[:2]==['uv','export']:
+            exports.append(command)
+            assert '--frozen' in command and '--offline' in command
+        return actual_run(command,**kwargs)
+    monkeypatch.setattr(stager.subprocess,'run',guarded_run)
+    artifact=stage(component,tmp_path/'artifacts')
+    assert len(exports)==1
+    assert (artifact/'uv.lock').read_bytes()==(ROOT/'uv.lock').read_bytes()
+    assert (artifact/'requirements.txt').is_file()
+
+
+def test_export_failure_surfaces_stderr_and_preserves_previous_artifact(tmp_path,monkeypatch):
+    import scripts.stage_apps as stager
+    directory=tmp_path/'agent';directory.mkdir()
+    (directory/MARKER).write_text('{}')
+    (directory/'preserved.txt').write_text('previous successful artifact')
+    actual_run=stager.subprocess.run
+    def fail_export(command,**kwargs):
+        if command[:2]==['uv','export']:
+            raise subprocess.CalledProcessError(1,command,stderr='test-only useful export diagnostic')
+        return actual_run(command,**kwargs)
+    monkeypatch.setattr(stager.subprocess,'run',fail_export)
+    with pytest.raises(RuntimeError,match='useful export diagnostic'):
+        stage('agent',tmp_path)
+    assert (directory/'preserved.txt').read_text()=='previous successful artifact'
+
+
+@pytest.mark.parametrize('component,package,module',['agent store-operations-agent agent_server.identity'.split(),
+                                                    'storetime store-operations-demo-mcp storetime.server'.split()])
+def test_frozen_artifact_installs_only_selected_runtime(tmp_path,component,package,module):
+    artifact=stage(component,tmp_path)
+    result=subprocess.run(['uv','sync','--frozen','--offline','--no-default-groups','--package',package],
+                          cwd=artifact,capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    absent='storetime' if component=='agent' else 'agent_server'
+    check=f'''import importlib, importlib.util
+from pathlib import Path
+module=importlib.import_module({module!r})
+assert Path(module.__file__).is_relative_to(Path.cwd()), module.__file__
+assert importlib.util.find_spec({absent!r}) is None
+'''
+    subprocess.run([str(artifact/'.venv/bin/python'),'-c',check],cwd=artifact,check=True,capture_output=True,text=True)
+    assert (artifact/'uv.lock').read_bytes()==(ROOT/'uv.lock').read_bytes()

@@ -54,3 +54,7 @@ Applied after reconstruction commit `8e1e729915dd7c4602dfd1742425b09459ea0796` w
 ## Deployment layout refactor
 
 [Deployment-only validation](validation/deployment-layout/VALIDATION.md): 79 passed, 2 skipped; checkout/staged frontend, actual staged MCP apps, separate wheels and pinned official bundle-schema checks passed. No runtime business source changed. Authenticated Databricks CLI/workspace validation remains required.
+
+## CI staging correction
+
+[Cold-cache staging fix and validation evidence](validation/ci-staging-fix/VALIDATION.md): 84 passed, 2 skipped; frozen workspace artifacts, three target schema checks, and both wheels passed locally.

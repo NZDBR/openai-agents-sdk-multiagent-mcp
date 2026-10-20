@@ -6,7 +6,6 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = '.layout-artifact.json'
@@ -14,7 +13,7 @@ DEMO_SERVICES = ('storetime', 'opstask', 'confluence')
 
 
 def files_for(component):
-    metadata = {'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'NOTICE'}
+    metadata = {'pyproject.toml', 'uv.lock', 'mcp-apps/pyproject.toml', 'README.md', 'LICENSE', 'NOTICE'}
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0')
     selected = set(metadata)
     for name in filter(None, tracked):
@@ -56,31 +55,30 @@ def stage(component, output_root=None):
         # Developer console utilities are deliberately absent from runtime artifacts.
         metadata = temporary / 'pyproject.toml'
         text = metadata.read_text()
-        if component == 'agent':
-            text = text.split('[tool.uv.workspace]')[0].replace('    "store-operations-demo-mcp",\n', '')
-            text = text.replace('default-groups = ["dev", "setup"]', 'default-groups = []')
-        else:
-            text = (ROOT / 'mcp-apps/pyproject.toml').read_text()
-            text = text.replace('packages = ["shared", "storetime", "opstask", "confluence"]', 'packages = ["mcp-apps/shared", "mcp-apps/storetime", "mcp-apps/opstask", "mcp-apps/confluence"]')
-            text = text.replace('"data" = "shared/data"', '"mcp-apps/data" = "shared/data"')
+        # Retain both workspace manifests and their original package locations.
+        # The agent carries only demo metadata, never demo server code or data.
+        # Disabling default groups avoids installing development tools in children
+        # started by the existing, unchanged start-app launcher.
+        text = text.replace('default-groups = ["dev", "setup"]', 'default-groups = []')
         for command, module in [('quickstart','quickstart'), ('discover-tools','discover_tools'), ('preflight','preflight')]:
             text = text.replace(f'{command} = "scripts.{module}:main"\n', '')
         metadata.write_text(text)
-        # Derive standalone locks from the canonical workspace lock, without network
-        # resolution. Reject any version drift before emitting a deployable artifact.
-        for command in [
-            ['uv', 'lock', '--offline', '--directory', str(temporary)],
-            ['uv', 'export', '--locked', '--offline', '--no-default-groups', '--no-hashes',
-             '--no-emit-project', '--directory', str(temporary), '-o', str(temporary/'requirements.txt')],
-        ]:
+        # Consume the canonical lock verbatim. Re-locking these filtered source
+        # trees would require a fresh universal resolution (including platforms
+        # not cached by the preceding uv sync). Export needs no registry/cache.
+        package = 'store-operations-agent' if component == 'agent' else 'store-operations-demo-mcp'
+        command = ['uv', 'export', '--frozen', '--offline', '--package', package,
+                   '--no-default-groups', '--no-hashes', '--no-emit-workspace',
+                   '--directory', str(temporary), '-o', str(temporary/'requirements.txt')]
+        try:
             subprocess.run(command, check=True, capture_output=True, text=True)
-        canonical = {(p['name'], p['version']) for p in tomllib.loads((ROOT/'uv.lock').read_text())['package']}
-        selected = {(p['name'], p['version']) for p in tomllib.loads((temporary/'uv.lock').read_text())['package']}
-        if not selected <= canonical:
-            raise ValueError('Standalone lock changed a canonical dependency version')
+        except subprocess.CalledProcessError as error:
+            raise RuntimeError(f'Cannot export {component} requirements from the canonical lock:\n{error.stderr}') from error
+        if (temporary/'uv.lock').read_bytes() != (ROOT/'uv.lock').read_bytes():
+            raise ValueError('Artifact export modified the canonical workspace lock')
         hashes = {str(p.relative_to(temporary)): hashlib.sha256(p.read_bytes()).hexdigest()
                   for p in sorted(temporary.rglob('*')) if p.is_file()}
-        (temporary / MARKER).write_text(json.dumps({'component':component, 'files':hashes}, indent=2)+'\n')
+        (temporary / MARKER).write_text(json.dumps({'component':component, 'package':package, 'files':hashes}, indent=2)+'\n')
         if destination.exists():
             shutil.rmtree(destination)
         shutil.move(str(temporary), destination)

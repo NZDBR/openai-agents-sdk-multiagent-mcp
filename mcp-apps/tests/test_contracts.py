@@ -12,5 +12,5 @@ def test_published_contracts_and_separate_deployments():
     for cap in ['storetime','opstask','confluence']:
         app=bundle['resources']['apps'][cap]
         assert app['name']=='${var.'+cap+'_app_name}'
-        assert app['config']['command']==['uv','run','--no-default-groups','demo-'+cap]
+        assert app['config']['command']==['uv','run','--frozen','--package','store-operations-demo-mcp','--no-default-groups','demo-'+cap]
         assert app['source_code_path']=='../.deploy/'+cap

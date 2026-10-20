@@ -1,0 +1,4 @@
+agent: /workspace/openai-agents-sdk-multiagent-mcp/.deploy/agent
+storetime: /workspace/openai-agents-sdk-multiagent-mcp/.deploy/storetime
+opstask: /workspace/openai-agents-sdk-multiagent-mcp/.deploy/opstask
+confluence: /workspace/openai-agents-sdk-multiagent-mcp/.deploy/confluence

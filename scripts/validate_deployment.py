@@ -54,6 +54,8 @@ def validate(target):
     agent = apps['store_operations']
     env = {v['name']:v for v in agent['config']['env']}
     assert env['USER_AUTHORIZATION_MODE']['value']=='obo'
+    assert env['UV_FROZEN']['value']=='true'
+    assert env['UV_NO_DEFAULT_GROUPS']['value']=='true'
     assert 'DEMO_OPSTASK_WRITE_TOKEN' not in env or target=='demo'
     grants = {v['name']:v for v in agent['resources']}
     assert grants['opstask-read-mcp']['uc_securable']['securable_full_name'] != grants['opstask-write-mcp']['uc_securable']['securable_full_name']
@@ -65,6 +67,9 @@ def validate(target):
             if 'value_from' in item:
                 assert item['value_from'] in {r['name'] for r in app['resources']}, 'Unbound App resource'
         assert '--no-default-groups' in app['config']['command']
+        assert '--frozen' in app['config']['command']
+        if name != 'store_operations':
+            assert app['config']['command'][app['config']['command'].index('--package')+1]=='store-operations-demo-mcp'
     jobs = bundle['resources']['jobs']
     notebook = jobs['store_operations_background']['tasks'][0]['notebook_task']['notebook_path']
     assert (ROOT / 'deployment' / notebook).is_file()
