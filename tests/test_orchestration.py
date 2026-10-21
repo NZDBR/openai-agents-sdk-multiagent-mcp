@@ -63,7 +63,7 @@ def test_model_can_only_propose_never_mutate(settings, transports):
             agent = await build_agent(stack, replace(settings, model=model), SimpleNamespace(config=SimpleNamespace(host='https://workspace.example')), store, 'employee', 'conversation', turn)
             await Runner.run(agent, 'Create a task', run_config=RunConfig(tracing_disabled=True))
         assert len(turn.proposals) == 1
-        assert turn.proposals[0]['status'] == 'pending'
+        assert turn.proposals[0]['approval_state'] == 'PENDING_APPROVAL'
         assert transports == []
         assert not any('create_task' in tools for tools in model.seen_tools)
     asyncio.run(run())

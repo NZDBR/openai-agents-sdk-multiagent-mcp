@@ -106,7 +106,7 @@ def test_only_approval_handler_calls_privileged_factory():
                 for node in ast.walk(fn):
                     if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='app_write_mcp_client':
                         callers.append((p.name,fn.name))
-    assert callers==[('actions.py','decide_task')]
+    assert callers==[('approval_worker.py','write_task')]
     client_source=Path('e2e-chatbot-app-next/client/src').rglob('*')
     for p in client_source:
         if p.is_file():
@@ -114,33 +114,16 @@ def test_only_approval_handler_calls_privileged_factory():
             assert 'OPSTASK_WRITE_CLIENT_SECRET' not in text and 'DEMO_OPSTASK_WRITE_TOKEN' not in text
 
 
-def test_approval_claim_precedes_writer_and_rejection_replay_never_construct_writer(settings,monkeypatch):
-    events=[]
-    class Store(FakeStore):
-        async def claim(self,*args):
-            events.append('claim');return await super().claim(*args)
-    class Writer:
-        async def __aenter__(self): return self
-        async def __aexit__(self,*args): pass
-        async def list_tools(self): return [Tool(name='create_task',inputSchema={'type':'object'})]
-        async def call_tool(self,name,args):
-            events.append('write');return CallToolResult(content=[],structuredContent={'task_id':'test-stable-id'})
-    def factory(*args,**kwargs): events.append('construct');return Writer()
-    monkeypatch.setattr(actions,'app_write_mcp_client',factory)
+def test_approval_never_constructs_writer(settings,monkeypatch):
+    from agent_server import approval_worker
+    def forbidden(*args,**kwargs): raise AssertionError('HTTP request cannot construct writer')
+    monkeypatch.setattr(approval_worker,'app_write_mcp_client',forbidden)
     async def run():
-        store=Store();payload=dict(title='Review training',store_id='test-store',assignee='manager',due_date='2030-01-15')
-        rejected=await store.propose('employee','session',payload)
-        for approval in [False,True]:
-            await actions.decide_task(store,settings,'employee','session',rejected['approval_id'],approval)
-        assert events==['claim','claim']
-        proposal=await store.propose('employee','session',payload)
-        with pytest.raises(PermissionError):
-            await actions.decide_task(store,settings,'another-employee','session',proposal['approval_id'],True)
-        assert 'construct' not in events
-        one=await actions.decide_task(store,settings,'employee','session',proposal['approval_id'],True)
-        two=await actions.decide_task(store,settings,'employee','session',proposal['approval_id'],True)
-        assert one==two and events.count('construct')==events.count('write')==1
-        assert events.index('construct')>events.index('claim')
+        store=FakeStore();p=await store.propose('employee','session',dict(title='Review',store_id='test',assignee='manager',due_date='2030-01-15'))
+        for _ in range(2):
+            result=await actions.decide_task(store,settings,'employee','session',p['approval_id'],True)
+            assert result['execution_state']=='QUEUED'
+        assert store.completed==[]
     asyncio.run(run())
 
 
@@ -188,13 +171,14 @@ def test_gateway_challenge_is_not_approved_or_retried_by_application(settings,mo
             calls.append(name)
             # Test-only shape representing an unconfirmed outcome; not an asserted platform API.
             return CallToolResult(content=[],structuredContent={'test_only_unconfirmed_outcome':'ASK'})
-    monkeypatch.setattr(actions,'app_write_mcp_client',lambda *args,**kwargs:Writer())
+    from agent_server import approval_worker
+    monkeypatch.setattr(approval_worker,'app_write_mcp_client',lambda *args,**kwargs:Writer())
     async def run():
         store=FakeStore();proposal=await store.propose('employee','session',dict(title='Review',store_id='test',assignee='manager',due_date='2030-01-15'))
-        with pytest.raises(RuntimeError,match='reconciliation'):
-            await actions.decide_task(store,settings,'employee','session',proposal['approval_id'],True)
+        await actions.decide_task(store,settings,'employee','session',proposal['approval_id'],True)
+        await approval_worker.execute_approval(store,settings,proposal['approval_id'])
         replay=await actions.decide_task(store,settings,'employee','session',proposal['approval_id'],True)
-        assert replay['status']=='needs_reconciliation' and calls==['create_task']
+        assert replay['execution_state']=='FAILED' and calls==['create_task']
     asyncio.run(run())
 
 

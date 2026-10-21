@@ -114,7 +114,7 @@ async def invoke_handler(request: ResponsesAgentRequest) -> ResponsesAgentRespon
     action = ci.get('action', 'chat')
     async with store.lock(sid):
         if action == 'pending_proposals':
-            proposals = await store.sql("SELECT id,payload,status,external_id FROM store_ops.approvals WHERE owner_id=%s AND session_id=%s ORDER BY created_at DESC LIMIT 20", (owner, sid))
+            proposals = await store.proposals(owner, sid)
             return response('Task proposals', {'session_id': conversation, 'proposals': proposals})
         if action == 'task_decision':
             result = await decide_task(store, settings, owner, sid, ci['approval_id'], ci.get('approve'))

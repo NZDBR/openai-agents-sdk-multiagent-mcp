@@ -15,7 +15,10 @@ def scoped_session(owner, conversation):
     return hashlib.sha256(f'{owner}:{conversation}'.encode()).hexdigest()
 
 
-class LakebaseStore:
+from agent_server.approval_store import ApprovalPersistence
+
+
+class LakebaseStore(ApprovalPersistence):
     def __init__(self, endpoint):
         self.schema = os.getenv('STORE_OPS_SCHEMA', 'store_ops')
         if not re.fullmatch(r'[a-z_][a-z0-9_]*', self.schema):
@@ -60,25 +63,6 @@ class LakebaseStore:
         if not rows:
             raise PermissionError('Memory not found for this employee')
         return {'status': 'deleted'}
-
-    async def propose(self, owner, session_id, payload):
-        proposal_id = uuid4().hex
-        await self.sql('INSERT INTO store_ops.approvals(id,owner_id,session_id,payload) VALUES (%s,%s,%s,%s::jsonb)', (proposal_id, owner, session_id, json.dumps(payload)))
-        return {'approval_id': proposal_id, 'status': 'pending', 'task': payload}
-
-    async def claim(self, owner, session_id, proposal_id, approve):
-        # Exact reviewed payload is immutable and bound to user and conversation.
-        state = 'executing' if approve else 'rejected'
-        rows = await self.sql("UPDATE store_ops.approvals SET status=%s,decided_at=now() WHERE id=%s AND owner_id=%s AND session_id=%s AND status='pending' RETURNING payload,status", (state, proposal_id, owner, session_id))
-        if rows:
-            return rows[0]
-        rows = await self.sql('SELECT status,external_id FROM store_ops.approvals WHERE id=%s AND owner_id=%s AND session_id=%s', (proposal_id, owner, session_id))
-        if not rows:
-            raise PermissionError('Proposal not found for this employee/session')
-        return rows[0]
-
-    async def complete(self, proposal_id, state, external_id=None):
-        await self.sql("UPDATE store_ops.approvals SET status=%s,external_id=%s WHERE id=%s AND status='executing'", (state, external_id, proposal_id))
 
     def close(self):
         self.client.close()

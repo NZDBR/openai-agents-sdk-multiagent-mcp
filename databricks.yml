@@ -128,6 +128,19 @@ variables:
   demo_mcp_allowed_hosts:
     description: Comma-separated exact deployed demo App hosts
     default: ''
+  approval_service_principal:
+    description: Least-privilege principal running approval workers; grant Lakebase
+      and writer access
+  approval_secret_scope:
+    description: Secret scope readable only by the worker principal
+  approval_client_id_key:
+    description: M2M writer client ID secret key
+  approval_client_secret_key:
+    description: M2M writer client secret key
+  approval_policy:
+    description: 'Trusted JSON limits: ttl, lease, timeout, retries, backoff, backoff_cap
+      (seconds except retries)'
+    default: '{"ttl":86400,"lease":120,"timeout":45,"retries":5,"backoff":30,"backoff_cap":3600}'
 workspace:
   host: ${var.workspace_host}
 artifacts:

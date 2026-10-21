@@ -1,3 +1,9 @@
+# Durable approval identity update
+
+The scheduled execution Workflow now owns privileged mutation. The interactive App persists approval/outbox only; its deployed writer UC binding and demo write token have been removed. Revoke previous manual/inherited writer grants from the App SP. The worker reads dedicated M2M credentials from its secret scope; dispatcher Jobs identity and worker Lakebase identity have separate grants. No employee token is reused for writes. See [current execution, migration and grant requirements](DURABLE_APPROVALS.md).
+
+The historical identity configuration below describes the earlier request-bound path; statements about decide_task directly invoking the writer, App SP writer grants, or needs_reconciliation are superseded by the linked durability instructions. Generic tool error/Gateway ASK outcomes now fail closed into FAILED; transient transport failures use durable bounded recovery with the same business key.
+
 # Enterprise identity and least-privilege MCP authorization
 
 The runtime retains the pinned official Databricks Agent Server and OpenAI Agents SDK scaffold. Identity selection is explicit in `agent_server/identity.py` and `agent_server/connections.py`. Resource names, OAuth scope values and policy IDs are deployment inputs, never evidence that access exists.

@@ -156,7 +156,7 @@ The `dev` and `prod` targets share the same variable contract and differ in DAB 
 
 ## Human actions and memory
 
-The official chat UI includes a task-review panel. The model's `propose_task` stores the exact title, store, assignee and due date in Lakebase and returns a pending proposal. Only a separate employee command may claim that proposal and invoke the mutation tool. Rejection is permanent; approval replays cannot issue a second write. An ambiguous outcome becomes `needs_reconciliation`; a crash can leave `executing`. Reconcile by approval ID with OpsTask rather than resetting/retrying. The provider must honor the mapped idempotency key and enforce row/store permissions.
+The official chat UI includes a task-review panel. Approval commits an employee/session-bound decision and durable Lakebase outbox entry; it never calls OpsTask in the HTTP request. A scheduled Databricks dispatcher submits a separate backend-only execution Job, which uses expiry checks, expiring leases/fencing and bounded persisted retries. The immutable reviewed payload and approval ID remain the business idempotency contract. See [migration, identities, recovery and live acceptance requirements](docs/DURABLE_APPROVALS.md). The dispatcher defaults to PAUSED until migration and resource grants are verified.
 
 The native Responses endpoint `/invocations` accepts `custom_inputs.action`:
 

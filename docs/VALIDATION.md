@@ -58,3 +58,7 @@ Applied after reconstruction commit `8e1e729915dd7c4602dfd1742425b09459ea0796` w
 ## CI staging correction
 
 [Cold-cache staging fix and validation evidence](validation/ci-staging-fix/VALIDATION.md): 84 passed, 2 skipped; frozen workspace artifacts, three target schema checks, and both wheels passed locally.
+
+## Durable asynchronous approvals
+
+[Requirement/test mapping and validation evidence](validation/durable-approvals/VALIDATION.md): 107 passed, 2 live tests skipped; actual local PostgreSQL concurrency/migration/fencing tests, MCP stack, frontend, wheels, staging and three configuration targets passed. Live Lakebase/Jobs/provider acceptance remains required. See [migration and rollout](DURABLE_APPROVALS.md).

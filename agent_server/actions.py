@@ -1,14 +1,9 @@
 """Human-only commands. None of these mutation functions is an agent tool."""
 import asyncio
 import hashlib
-import json
-import os
 from datetime import date
 
-import jsonschema
-from databricks_openai.agents import McpServer
 from pydantic import BaseModel, Field
-from agent_server.connections import app_write_mcp_client
 
 
 class TaskProposal(BaseModel):
@@ -21,36 +16,8 @@ class TaskProposal(BaseModel):
 async def decide_task(store, settings, owner, session_id, approval_id, approve):
     if type(approve) is not bool:
         raise ValueError('Approval decision must be an explicit boolean')
-    claim = await store.claim(owner, session_id, approval_id, approve)
-    if 'payload' not in claim or not approve:
-        return {'status': claim['status'], 'task_id': claim.get('external_id')}
-    try:
-        # Separate writer is never attached to a model.
-        async with app_write_mcp_client(settings, databricks_factory=McpServer) as server:
-            tools = await server.list_tools()
-            tool = next(t for t in tools if t.name == settings.task_tool)
-            mapping = json.loads(os.environ.get('OPSTASK_ARGUMENT_MAP', '{"title":"title","store_id":"store_id","assignee":"assignee","due_date":"due_date","idempotency_key":"idempotency_key"}'))
-            payload = dict(claim['payload'], idempotency_key=approval_id)
-            if set(mapping) != set(payload):
-                raise ValueError('OpsTask argument map must cover every reviewed field and idempotency_key')
-            arguments = {mapping[key]: value for key, value in payload.items()}
-            jsonschema.validate(arguments, tool.inputSchema)
-            result = await server.call_tool(settings.task_tool, arguments)
-            if result.isError:
-                raise RuntimeError('OpsTask mutation failed')
-            response = result.structuredContent
-            if not response:
-                response = json.loads(next(c.text for c in result.content if c.type == 'text'))
-            if isinstance(response.get('data'), dict):
-                response = response['data']
-            task_id = response.get(os.getenv('OPSTASK_RESULT_ID_FIELD', 'task_id'))
-            if not isinstance(task_id, str) or not task_id:
-                raise RuntimeError('OpsTask did not return a task identifier')
-        await store.complete(approval_id, 'created', task_id)
-        return {'status': 'created', 'task_id': task_id}
-    except Exception:
-        await store.complete(approval_id, 'needs_reconciliation')
-        raise RuntimeError('OpsTask outcome requires reconciliation by approval ID; automatic retry is disabled') from None
+    # Persist decision and outbox atomically; no Jobs or privileged MCP call here.
+    return await store.decide(owner, session_id, approval_id, approve)
 
 
 async def background_job(store, service_client, settings, owner, request_id, confirm, status_only=False):

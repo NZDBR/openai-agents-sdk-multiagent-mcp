@@ -40,9 +40,3 @@ resource_specs:
   description: Fixed background evaluation Workflow
   job_spec:
     permission: CAN_MANAGE_RUN
-- name: opstask-write-mcp
-  description: Backend-only OpsTask mutation UC connection; never grant employees
-    access
-  uc_securable_spec:
-    securable_type: CONNECTION
-    permission: USE_CONNECTION

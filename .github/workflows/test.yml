@@ -3,6 +3,19 @@ on: [push, pull_request]
 jobs:
   python:
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: approvals_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test -d approvals_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_POSTGRES_DSN: postgresql://test:test-only-password@localhost:5432/approvals_test
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7

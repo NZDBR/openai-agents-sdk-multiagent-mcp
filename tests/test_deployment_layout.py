@@ -17,7 +17,8 @@ def test_only_demo_target_adds_mcp_apps():
     assert len({app['source_code_path'] for app in demo.values()})==4
     env={v['name']:v for v in demo['store_operations']['config']['env']}
     assert env['MCP_CONNECTION_MODE']['value']=='deployed_demo'
-    assert env['DEMO_OPSTASK_READ_TOKEN']['value_from'] != env['DEMO_OPSTASK_WRITE_TOKEN']['value_from']
+    assert 'DEMO_OPSTASK_WRITE_TOKEN' not in env
+    assert demo['store_operations']['resources'] and 'DEMO_OPSTASK_READ_TOKEN' in env
     assert not (ROOT/'mcp-apps/databricks.yml').exists()
     assert not (ROOT/'e2e-chatbot-app-next/databricks.yml').exists()
 

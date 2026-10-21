@@ -17,10 +17,11 @@ def merge(base, overlay):
         for key, value in overlay.items():
             result[key] = merge(result[key], value) if key in result else deepcopy(value)
         return result
-    if isinstance(base, list) and isinstance(overlay, list) and all(isinstance(v, dict) and 'name' in v for v in base+overlay):
+    key_field = next((key for key in ('name','task_key') if isinstance(base,list) and isinstance(overlay,list) and base+overlay and all(isinstance(v,dict) and key in v for v in base+overlay)), None)
+    if key_field:
         result = deepcopy(base)
         for value in overlay:
-            index = next((i for i, existing in enumerate(result) if existing['name']==value['name']), None)
+            index = next((i for i, existing in enumerate(result) if existing[key_field]==value[key_field]), None)
             if index is None: result.append(deepcopy(value))
             else: result[index] = merge(result[index], value)
         return result
@@ -58,7 +59,8 @@ def validate(target):
     assert env['UV_NO_DEFAULT_GROUPS']['value']=='true'
     assert 'DEMO_OPSTASK_WRITE_TOKEN' not in env or target=='demo'
     grants = {v['name']:v for v in agent['resources']}
-    assert grants['opstask-read-mcp']['uc_securable']['securable_full_name'] != grants['opstask-write-mcp']['uc_securable']['securable_full_name']
+    assert 'opstask-write-mcp' not in grants
+    assert 'DEMO_OPSTASK_WRITE_TOKEN' not in env
     for name, app in apps.items():
         # Included files live under deployment/, so these paths resolve from there.
         source = (ROOT / 'deployment' / app['source_code_path']).resolve()
@@ -71,8 +73,11 @@ def validate(target):
         if name != 'store_operations':
             assert app['config']['command'][app['config']['command'].index('--package')+1]=='store-operations-demo-mcp'
     jobs = bundle['resources']['jobs']
-    notebook = jobs['store_operations_background']['tasks'][0]['notebook_task']['notebook_path']
-    assert (ROOT / 'deployment' / notebook).is_file()
+    for job in jobs.values():
+        for task in job['tasks']:
+            notebook = task['notebook_task']['notebook_path']
+            assert (ROOT / 'deployment' / notebook).is_file()
+    assert jobs['store_operations_approval_execution']['parameters'][0]['name']=='approval_id'
     assert bundle['workspace']['host']=='${var.workspace_host}'
     return {'target':target, 'apps':sorted(apps), 'checks':'pinned Databricks CLI JSON schema, local structure and bindings', 'live_verified':False}
 

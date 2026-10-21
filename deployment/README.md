@@ -84,3 +84,7 @@ The existing startup launcher is unchanged: frontend `npm ci` and build still ru
 - `requirements.txt` is a generated, pinned **core runtime** compatibility export. Regenerate with the command in its header; never edit it as a second source of dependency declarations. The redundant `requirements.lock` export is retired. Per-artifact requirements export only the selected runtime dependencies from the unchanged canonical workspace lock; workspace projects themselves are omitted from the pip export.
 - Root `manifest.yaml` remains template metadata. Obsolete standalone UI deployment examples are preserved byte-for-byte under `docs/template-reference/chat-ui/`; their paths/variables are archival, not runnable current configuration. Duplicate MCP bundle/app YAML files are replaced by the root demo target.
 - License/NOTICE, template runtime helpers, OBO forwarding, SDK contracts and frontend DB migrations are preserved. Omnigent/Codex files stay in Git, outside deployed artifacts.
+
+## Durable approval Jobs
+
+The root bundle additionally defines a scheduled approval dispatcher and a backend-only execution Job. The dispatcher is PAUSED by default; there is no immediate-dispatch path. The App has no writer resource grant or demo writer secret. See [the explicit migration, worker M2M bindings, grant plan and recovery contract](../docs/DURABLE_APPROVALS.md) before enabling the schedule. Local bundle validation does not apply database migrations or prove live Job/Lakebase/MCP authorization.

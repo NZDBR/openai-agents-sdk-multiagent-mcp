@@ -88,12 +88,16 @@ async def scenarios(stack):
         after_proposal=await tasks();assert after_proposal==baseline
         decision={'action':'task_decision','approval_id':approval_id,'approve':True}
         approved=await invoke([],store,'Approve reviewed proposal','task-validation',decision)
+        assert await tasks()==baseline  # approval only queues; worker is a separate invocation
+        from agent_server.approval_worker import execute_approval
+        from agent_server.config import Settings
+        await execute_approval(store,demo_settings(),approval_id)
         after_approval=await tasks()
         replay=await invoke([],store,'Replay reviewed approval','task-validation',decision)
         after_replay=await tasks()
-        task_id=approved['response']['custom_outputs']['action']['task_id']
+        task_id=store.approval_rows[approval_id]['task_id']
         assert len(after_approval)==len(baseline)+1 and after_approval==after_replay
-        assert replay['response']['custom_outputs']['action']['task_id']==task_id
+        assert replay['response']['custom_outputs']['action']['execution_state']=='EXECUTED'
         assert sum(t['task_id']==task_id for t in after_replay)==1 and len(store.completed)==1
         async with client(stack,'opstask',True) as writer:
             replayed=await writer.call_tool('create_task',dict(payload,idempotency_key=approval_id))

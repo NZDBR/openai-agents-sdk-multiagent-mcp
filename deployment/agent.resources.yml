@@ -2,8 +2,8 @@ resources:
   apps:
     store_operations:
       name: ${var.app_name}
-      description: Governed Store Operations Agent · official Databricks OpenAI SDK
-        scaffold
+      description: "Governed Store Operations Agent \xB7 official Databricks OpenAI\
+        \ SDK scaffold"
       source_code_path: ../.deploy/agent
       config:
         command:
@@ -83,6 +83,8 @@ resources:
           value: 'true'
         - name: UV_NO_DEFAULT_GROUPS
           value: 'true'
+        - name: APPROVAL_POLICY_JSON
+          value: ${var.approval_policy}
       resources:
       - name: experiment
         experiment:
@@ -119,10 +121,5 @@ resources:
       - name: confluence-mcp
         uc_securable:
           securable_full_name: ${var.confluence_connection}
-          securable_type: CONNECTION
-          permission: USE_CONNECTION
-      - name: opstask-write-mcp
-        uc_securable:
-          securable_full_name: ${var.opstask_write_connection}
           securable_type: CONNECTION
           permission: USE_CONNECTION

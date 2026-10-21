@@ -26,7 +26,7 @@ def user_mcp_client(capability,settings,user_client,evidence):
     return GovernedMcpServer(url=url,params={'headers':headers},workspace_client=user_client,**common)
 
 def app_write_mcp_client(settings, *, databricks_factory=McpServer):
-    """Called only by the trusted application approval handler, never by an agent."""
+    """Called only by the trusted Workflow execution worker, never by an agent or HTTP handler."""
     settings.approval_policy()  # Validates operator intent, not actual policy attachment.
     common=dict(name='Human-approved backend OpsTask writer',max_retry_attempts=0)
     if settings.connection_mode=='databricks':

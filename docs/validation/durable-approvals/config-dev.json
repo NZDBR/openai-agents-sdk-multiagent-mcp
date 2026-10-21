@@ -1,0 +1,8 @@
+{
+  "target": "dev",
+  "apps": [
+    "store_operations"
+  ],
+  "checks": "pinned Databricks CLI JSON schema, local structure and bindings",
+  "live_verified": false
+}

@@ -47,7 +47,7 @@ class MemorySession:
 
 class FakeStore:
     def __init__(self):
-        self.proposals = {}
+        self.approval_rows = {}
         self.prefs = []
         self.history = MemorySession()
         self.completed = []
@@ -59,17 +59,37 @@ class FakeStore:
     async def preferences(self, owner):
         return self.prefs
     async def propose(self, owner, session, payload):
+        from datetime import datetime, timezone, timedelta
+        from copy import deepcopy
         id = uuid4().hex
-        self.proposals[id] = {'owner': owner, 'session': session, 'payload': payload, 'status': 'pending'}
-        return {'approval_id': id, 'task': payload, 'status': 'pending'}
-    async def claim(self, owner, session, id, approve):
-        row = self.proposals[id]
-        if row['owner'] != owner or row['session'] != session:
+        now = datetime.now(timezone.utc)
+        self.approval_rows[id] = dict(proposal_id=id,employee_id=owner,session_id=session,
+            reviewed_payload=deepcopy(payload),store_id=payload['store_id'],action_type='CREATE_TASK',
+            tool_name='create_task',idempotency_key=id,approval_state='PENDING_APPROVAL',
+            execution_state='NOT_STARTED',created_at=now,expires_at=now+timedelta(days=1),retry_count=0)
+        return dict(approval_id=id,task=payload,approval_state='PENDING_APPROVAL',execution_state='NOT_STARTED')
+    async def proposals(self, owner, session):
+        return [dict(id=r['proposal_id'],payload=r['reviewed_payload'],**{k:r[k] for k in
+            ('action_type','created_at','expires_at','approval_state','execution_state')})
+            for r in self.approval_rows.values() if r['employee_id']==owner and r['session_id']==session]
+    async def decide(self, owner, session, id, approve):
+        from datetime import datetime, timezone
+        row=self.approval_rows[id]
+        if row['employee_id']!=owner or row['session_id']!=session:
             raise PermissionError('wrong owner/session')
-        if row['status'] != 'pending':
-            return {'status': row['status'], 'external_id': row.get('external_id')}
-        row['status'] = 'executing' if approve else 'rejected'
-        return {'payload': row['payload'], 'status': row['status']}
-    async def complete(self, id, state, external_id=None):
-        self.proposals[id].update(status=state, external_id=external_id)
-        self.completed.append((id, state))
+        if row['approval_state']=='PENDING_APPROVAL':
+            row['approval_state']='EXPIRED' if row['expires_at']<=datetime.now(timezone.utc) else 'APPROVED' if approve else 'REJECTED'
+            if row['approval_state']=='APPROVED': row['execution_state']='QUEUED'
+        return {k:row.get(k) for k in ('approval_state','execution_state','task_id')}
+    async def execution_claim(self,id):
+        row=self.approval_rows[id]
+        if row['approval_state']!='APPROVED' or row['execution_state'] not in ('QUEUED','RETRYABLE_FAILURE'): return None
+        row.update(execution_state='EXECUTING',lease_token=uuid4().hex)
+        return dict(row)
+    async def executable(self,row):
+        return self.approval_rows[row['proposal_id']]['lease_token']==row['lease_token']
+    async def execution_finish(self,row,task_id=None,error=None,retryable=False):
+        target=self.approval_rows[row['proposal_id']]
+        target.update(execution_state='EXECUTED' if task_id else 'RETRYABLE_FAILURE' if retryable else 'FAILED',task_id=task_id)
+        self.completed.append((row['proposal_id'],target['execution_state']))
+        return [dict(execution_state=target['execution_state'],result_task_id=task_id)]

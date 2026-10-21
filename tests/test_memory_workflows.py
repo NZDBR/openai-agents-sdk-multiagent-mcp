@@ -36,17 +36,17 @@ def test_long_term_consent_and_owner_scoping(monkeypatch):
     assert queries[2][1] == ('test-memory','owner')
 
 
-def test_claim_is_single_atomic_conditional_update():
-    store = memory.LakebaseStore.__new__(memory.LakebaseStore)
-    queries = []
-    async def sql(query, params):
-        queries.append((query, params))
-        return [{'payload':{}, 'status':'executing'}]
-    store.sql = sql
-    asyncio.run(store.claim('owner','session','proposal',True))
-    assert len(queries) == 1
-    assert "status='pending' RETURNING" in queries[0][0]
-    assert queries[0][1] == ('executing','proposal','owner','session')
+def test_decision_and_outbox_share_one_atomic_statement():
+    store=memory.LakebaseStore.__new__(memory.LakebaseStore)
+    queries=[]
+    async def sql(query,params):
+        queries.append((query,params))
+        return [{'approval_state':'APPROVED','execution_state':'QUEUED'}]
+    store.sql=sql
+    asyncio.run(store.decide('owner','session','proposal',True))
+    assert 'WITH decision AS' in queries[0][0] and 'INSERT INTO store_ops.approval_outbox' in queries[0][0]
+    assert "approval_state='PENDING_APPROVAL'" in queries[0][0]
+    assert queries[0][1][-3:]==('proposal','owner','session')
 
 
 def test_workflows_sdk_submission_confirmation_and_status(settings):

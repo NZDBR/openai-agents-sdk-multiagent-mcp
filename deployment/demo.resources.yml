@@ -100,8 +100,6 @@ targets:
               value: ${var.demo_confluence_mcp_url}
             - name: DEMO_CONFLUENCE_READ_TOKEN
               value_from: demo-confluence-read-token
-            - name: DEMO_OPSTASK_WRITE_TOKEN
-              value_from: demo-opstask-write-token
             - name: STORETIME_READ_TOOLS
               value: get_schedules,get_training_blocks,get_training_hours,get_coverage_reasons,diagnose_training_gap
             - name: OPSTASK_READ_TOOLS
@@ -126,9 +124,54 @@ targets:
               scope: ${var.secret_scope}
               key: ${var.confluence_read_secret_key}
               permission: READ
-          - name: demo-opstask-write-token
-            secret:
-              scope: ${var.secret_scope}
-              key: ${var.opstask_write_secret_key}
-              permission: READ
           name: ${var.app_name}
+      jobs:
+        store_operations_approval_execution:
+          name: ${var.app_name}-approval-execution
+          max_concurrent_runs: 10
+          parameters:
+          - name: approval_id
+            default: ''
+          run_as:
+            service_principal_name: ${var.approval_service_principal}
+          tasks:
+          - task_key: execute_approval
+            existing_cluster_id: ${var.job_cluster_id}
+            timeout_seconds: 300
+            max_retries: 0
+            notebook_task:
+              notebook_path: ../jobs/execute_approval_notebook.py
+              base_parameters:
+                approval_id: '{{job.parameters.approval_id}}'
+                deployment_config: '{"MODEL_ENDPOINT": "${var.model_endpoint}", "GENIE_SPACE_ID":
+                  "${var.genie_space_id}", "LAKEBASE_ENDPOINT": "${var.lakebase_endpoint}",
+                  "LAKEBASE_AGENT_MEMORY_SCHEMA": "${var.memory_schema}", "STORE_OPS_SCHEMA":
+                  "${var.memory_schema}", "MLFLOW_EXPERIMENT_ID": "${var.experiment_id}",
+                  "MLFLOW_TRACING_SQL_WAREHOUSE_ID": "${var.sql_warehouse_id}", "MLFLOW_TRACKING_URI":
+                  "databricks", "MLFLOW_REGISTRY_URI": "databricks-uc", "OPSTASK_CREATE_TOOL":
+                  "create_task", "OPSTASK_ARGUMENT_MAP": "${var.opstask_argument_map}",
+                  "OPSTASK_RESULT_ID_FIELD": "${var.opstask_result_id_field}", "STORETIME_CONNECTION":
+                  "${var.storetime_connection}", "STORETIME_READ_TOOLS": "${var.storetime_read_tools}",
+                  "OPSTASK_READ_TOOLS": "${var.opstask_read_tools}", "CONFLUENCE_CONNECTION":
+                  "${var.confluence_connection}", "CONFLUENCE_READ_TOOLS": "${var.confluence_read_tools}",
+                  "GENIE_MCP_URL": "${var.genie_mcp_url}", "STORETIME_MCP_URL": "${var.demo_storetime_mcp_url}",
+                  "OPSTASK_MCP_URL": "${var.demo_opstask_mcp_url}", "CONFLUENCE_MCP_URL":
+                  "${var.demo_confluence_mcp_url}", "BACKGROUND_JOB_ID": "0", "OPSTASK_READ_CONNECTION":
+                  "${var.opstask_read_connection}", "USER_AUTHORIZATION_MODE": "obo",
+                  "OPSTASK_WRITE_CONNECTION": "${var.opstask_write_connection}", "OPSTASK_WRITE_MCP_URL":
+                  "${var.opstask_write_mcp_url}", "OPSTASK_WRITE_AUTH_MODE": "m2m",
+                  "OPSTASK_WRITE_OAUTH_SCOPES": "${var.opstask_write_oauth_scopes}",
+                  "OPSTASK_APPROVAL_MODE": "${var.opstask_approval_mode}", "OPSTASK_GATEWAY_POLICY_ID":
+                  "${var.opstask_gateway_policy_id}", "MCP_CONNECTION_MODE": "deployed_demo",
+                  "DEMO_MCP_ALLOWED_HOSTS": "${var.demo_mcp_allowed_hosts}", "DATABRICKS_HOST":
+                  "${var.workspace_host}"}'
+                secret_scope: ${var.secret_scope}
+                client_id_key: ${var.approval_client_id_key}
+                client_secret_key: ${var.approval_client_secret_key}
+                demo_write_key: ${var.opstask_write_secret_key}
+                policy_config: ${var.approval_policy}
+            libraries:
+            - whl: ../dist/store_operations_agent-*.whl
+          permissions:
+          - service_principal_name: ${var.job_service_principal}
+            level: CAN_MANAGE_RUN
